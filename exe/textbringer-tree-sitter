@@ -483,8 +483,19 @@ module TextbringerTreeSitterCLI
         skip_map = args.include?("--no-map")
         success = get_parser(lang)
         if success && !skip_map
-          puts ""
-          generate_node_map(lang)
+          # デフォルト node_map がある言語はスキップ
+          default_node_map_languages = %w[
+            bash c cobol csharp groovy haml hcl html java javascript
+            json pascal php python ruby rust sql yaml
+          ]
+          lang_normalized = lang.to_s.gsub("-", "")
+          if default_node_map_languages.include?(lang_normalized)
+            puts ""
+            puts "Using default node_map for #{lang} (included in gem)"
+          else
+            puts ""
+            generate_node_map(lang)
+          end
         end
         exit(success ? 0 : 1)
       when "get-all"
