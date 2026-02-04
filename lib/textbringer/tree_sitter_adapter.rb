@@ -17,7 +17,8 @@ module Textbringer
       def use_tree_sitter(language)
         @tree_sitter_language = language
 
-        include InstanceMethods
+        # prepend を使って既存の custom_highlight より優先させる
+        prepend InstanceMethods
 
         define_method(:tree_sitter_language) do
           language

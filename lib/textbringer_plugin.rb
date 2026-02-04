@@ -89,22 +89,45 @@ Textbringer::TreeSitter::NodeMaps.available_languages.each do |language|
   end
 end
 
+# デバッグログ用
+def tree_sitter_debug(msg)
+  return unless ENV["TEXTBRINGER_TREE_SITTER_DEBUG"] == "1"
+  File.open("/tmp/tree_sitter_plugin.log", "a") { |f| f.puts "[#{Time.now}] #{msg}" }
+end
+
 # 利用可能な parser と node_map がある Mode に tree-sitter を有効化
+tree_sitter_debug "=== Enabling tree-sitter on modes ==="
+tree_sitter_debug "available_languages: #{Textbringer::TreeSitter::NodeMaps.available_languages.inspect}"
+
 MODE_LANGUAGE_MAP.each do |mode_name, language|
   next unless language
-  next unless Textbringer::TreeSitterConfig.parser_available?(language)
-  next unless Textbringer::TreeSitter::NodeMaps.for(language)
+
+  parser_available = Textbringer::TreeSitterConfig.parser_available?(language)
+  node_map = Textbringer::TreeSitter::NodeMaps.for(language)
+
+  tree_sitter_debug "#{mode_name} (#{language}): parser=#{parser_available}, node_map=#{!!node_map}"
+
+  next unless parser_available
+  next unless node_map
 
   begin
     mode_class = Textbringer.const_get(mode_name)
+    tree_sitter_debug "  found mode_class: #{mode_class}"
 
     # 既に tree-sitter が設定されていればスキップ
-    next if mode_class.respond_to?(:tree_sitter_language) && mode_class.tree_sitter_language
+    if mode_class.respond_to?(:tree_sitter_language) && mode_class.tree_sitter_language
+      tree_sitter_debug "  already has tree_sitter_language: #{mode_class.tree_sitter_language}"
+      next
+    end
 
     # TreeSitterAdapter を extend して use_tree_sitter を呼ぶ
     mode_class.extend(Textbringer::TreeSitterAdapter::ClassMethods)
     mode_class.use_tree_sitter(language)
-  rescue NameError
+    tree_sitter_debug "  enabled tree-sitter for #{mode_name}"
+  rescue NameError => e
+    tree_sitter_debug "  NameError: #{e.message}"
     # Mode が存在しない場合は無視
   end
 end
+
+tree_sitter_debug "=== Done ==="
