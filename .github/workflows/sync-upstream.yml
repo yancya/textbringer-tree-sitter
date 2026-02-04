@@ -1,0 +1,215 @@
+name: Sync Upstream Grammars
+
+on:
+  schedule:
+    # 毎週月曜 9:00 JST (日曜 24:00 UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Check upstream grammars for new node types
+        id: check
+        run: |
+          mkdir -p tmp/grammars
+
+          # 各言語の grammar リポジトリと node-types.json のパス
+          declare -A GRAMMAR_REPOS=(
+            ["bash"]="tree-sitter/tree-sitter-bash"
+            ["c"]="tree-sitter/tree-sitter-c"
+            ["csharp"]="tree-sitter/tree-sitter-c-sharp"
+            ["cobol"]="Faveod/tree-sitter-cobol"
+            ["groovy"]="tree-sitter-grammars/tree-sitter-groovy"
+            ["haml"]="tree-sitter-grammars/tree-sitter-haml"
+            ["hcl"]="mitchellh/tree-sitter-hcl"
+            ["html"]="tree-sitter/tree-sitter-html"
+            ["java"]="tree-sitter/tree-sitter-java"
+            ["javascript"]="tree-sitter/tree-sitter-javascript"
+            ["json"]="tree-sitter/tree-sitter-json"
+            ["pascal"]="Isopod/tree-sitter-pascal"
+            ["php"]="tree-sitter/tree-sitter-php"
+            ["python"]="tree-sitter/tree-sitter-python"
+            ["ruby"]="tree-sitter/tree-sitter-ruby"
+            ["rust"]="tree-sitter/tree-sitter-rust"
+            ["yaml"]="tree-sitter-grammars/tree-sitter-yaml"
+          )
+
+          REPORT=""
+          HAS_NEW_NODES="false"
+
+          for lang in "${!GRAMMAR_REPOS[@]}"; do
+            repo="${GRAMMAR_REPOS[$lang]}"
+            echo "Checking $lang from $repo..."
+
+            # node-types.json を取得（src/ ディレクトリにある）
+            url="https://raw.githubusercontent.com/${repo}/master/src/node-types.json"
+            if ! curl -fsSL "$url" -o "tmp/grammars/${lang}-node-types.json" 2>/dev/null; then
+              # main ブランチを試す
+              url="https://raw.githubusercontent.com/${repo}/main/src/node-types.json"
+              if ! curl -fsSL "$url" -o "tmp/grammars/${lang}-node-types.json" 2>/dev/null; then
+                echo "  Warning: Could not fetch node-types.json for $lang"
+                continue
+              fi
+            fi
+
+            # 全ノードタイプを抽出
+            upstream_nodes=$(jq -r '.[].type' "tmp/grammars/${lang}-node-types.json" 2>/dev/null | sort -u)
+
+            # 現在の NodeMaps から定義済みノードを抽出
+            node_map_file="lib/textbringer/tree_sitter/node_maps/${lang}.rb"
+            if [[ -f "$node_map_file" ]]; then
+              # Ruby ファイルからシンボルを抽出
+              current_nodes=$(grep -oE ':[a-zA-Z_][a-zA-Z0-9_]*' "$node_map_file" | sed 's/^://' | sort -u)
+
+              # 差分を計算（upstream にあって current にないもの）
+              new_nodes=$(comm -23 <(echo "$upstream_nodes") <(echo "$current_nodes") | grep -v '^$' || true)
+
+              if [[ -n "$new_nodes" ]]; then
+                HAS_NEW_NODES="true"
+                count=$(echo "$new_nodes" | wc -l | tr -d ' ')
+                REPORT="${REPORT}\n### ${lang}\n\n${count} new node types found:\n\`\`\`\n${new_nodes}\n\`\`\`\n"
+              fi
+            fi
+          done
+
+          echo "has_new_nodes=$HAS_NEW_NODES" >> $GITHUB_OUTPUT
+
+          if [[ "$HAS_NEW_NODES" == "true" ]]; then
+            # レポートをファイルに保存（改行を正しく処理）
+            echo -e "$REPORT" > tmp/report.md
+            echo "report_file=tmp/report.md" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Issue for new node types
+        if: steps.check.outputs.has_new_nodes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('tmp/report.md', 'utf8');
+
+            const title = `[Auto] New upstream node types detected (${new Date().toISOString().split('T')[0]})`;
+            const body = `## Upstream Grammar Sync Report
+
+            The following new node types were detected in upstream tree-sitter grammars:
+
+            ${report}
+
+            ## Action Required
+
+            Review these node types and add appropriate Face mappings to the corresponding NodeMaps files.
+
+            ---
+            *This issue was automatically created by the sync-upstream workflow.*`;
+
+            // 既存の同様の Issue がないかチェック
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'upstream-sync'
+            });
+
+            const existingIssue = issues.data.find(i => i.title.includes('[Auto] New upstream node types'));
+
+            if (existingIssue) {
+              // 既存 Issue にコメント追加
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `## Updated Report (${new Date().toISOString().split('T')[0]})\n\n${report}`
+              });
+              console.log(`Updated existing issue #${existingIssue.number}`);
+            } else {
+              // 新規 Issue 作成
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['upstream-sync', 'enhancement']
+              });
+              console.log(`Created new issue #${newIssue.data.number}`);
+            }
+
+      - name: Check Faveod/tree-sitter-parsers releases
+        id: check-releases
+        run: |
+          # 最新リリースをチェック
+          LATEST=$(curl -fsSL "https://api.github.com/repos/Faveod/tree-sitter-parsers/releases/latest" | jq -r '.tag_name')
+          CURRENT="v0.1.0"  # 現在使用しているバージョン
+
+          echo "latest_release=$LATEST" >> $GITHUB_OUTPUT
+          echo "current_release=$CURRENT" >> $GITHUB_OUTPUT
+
+          if [[ "$LATEST" != "$CURRENT" ]]; then
+            echo "new_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Issue for new parser release
+        if: steps.check-releases.outputs.new_release == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const latest = '${{ steps.check-releases.outputs.latest_release }}';
+            const current = '${{ steps.check-releases.outputs.current_release }}';
+
+            const title = `[Auto] New Faveod/tree-sitter-parsers release: ${latest}`;
+            const body = `## New Parser Release Available
+
+            A new release of [Faveod/tree-sitter-parsers](https://github.com/Faveod/tree-sitter-parsers) is available.
+
+            - **Current version:** ${current}
+            - **Latest version:** ${latest}
+
+            ## Action Required
+
+            1. Update \`scripts/build_parsers.sh\` with the new release URL
+            2. Update README.md with new version
+            3. Test with new parsers
+
+            ---
+            *This issue was automatically created by the sync-upstream workflow.*`;
+
+            // 既存の同様の Issue がないかチェック
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'upstream-sync'
+            });
+
+            const existingIssue = issues.data.find(i => i.title.includes('[Auto] New Faveod/tree-sitter-parsers release'));
+
+            if (!existingIssue) {
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['upstream-sync', 'dependencies']
+              });
+              console.log(`Created new issue #${newIssue.data.number}`);
+            }
