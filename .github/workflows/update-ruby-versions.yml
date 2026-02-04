@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      workflows: write
 
     steps:
       - uses: actions/checkout@v4
@@ -22,17 +23,12 @@ jobs:
         id: ruby-versions
         run: |
           # endoflife.date API から Ruby のサポート情報を取得
-          # support が false でない（通常サポート中）のもののみ対象
-          # eol のみで support が終了しているものは除外
+          # eol (End of Life) が今日より後のバージョンのみ対象
           TODAY=$(date +%Y-%m-%d)
 
-          # support (通常サポート) が有効なバージョンのみ取得
-          # support == false または support < today のものは除外
+          # EOL が今日より後のバージョンのみ取得
           SUPPORTED_VERSIONS=$(curl -sL "https://endoflife.date/api/ruby.json" | jq -r --arg today "$TODAY" '
-            [.[] | select(
-              (.support == false | not) and
-              ((.support | type) != "string" or .support > $today)
-            ) | .cycle] | sort_by(. | split(".") | map(tonumber)) | reverse | join(" ")
+            [.[] | select(.eol > $today) | .cycle] | sort_by(. | split(".") | map(tonumber)) | reverse | join(" ")
           ')
 
           echo "Supported Ruby versions (normal maintenance): $SUPPORTED_VERSIONS"
@@ -92,7 +88,7 @@ jobs:
 
             This PR updates the supported Ruby versions based on [endoflife.date](https://endoflife.date/ruby).
 
-            Only versions with **normal maintenance** (not security-only) are included.
+            Only versions that have **not reached EOL** are included.
 
             ### Changes
             - **Supported versions**: ${{ steps.ruby-versions.outputs.versions }}
