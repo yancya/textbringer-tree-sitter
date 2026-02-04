@@ -1,0 +1,5 @@
+pre-commit:
+  parallel: true
+  commands:
+    test:
+      run: bundle exec rake test
