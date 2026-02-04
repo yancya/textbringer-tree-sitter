@@ -2,11 +2,12 @@
 # frozen_string_literal: true
 
 # gem install 時にプリビルド済み parser を自動ダウンロード
-# HCL, YAML などビルドが必要なものは `textbringer-tree-sitter get <lang>` で取得
+# Faveod/tree-sitter-parsers から tarball を取得して展開
 
 require "fileutils"
 require "open-uri"
 require "rbconfig"
+require "tmpdir"
 
 def platform
   os = case RbConfig::CONFIG["host_os"]
@@ -24,6 +25,16 @@ def platform
   "#{os}-#{arch}"
 end
 
+def faveod_platform
+  case platform
+  when "darwin-arm64" then "macos-arm64"
+  when "darwin-x64" then "macos-x64"
+  when "linux-x64" then "linux-x64"
+  when "linux-arm64" then "linux-arm64"
+  else platform
+  end
+end
+
 def dylib_ext
   case RbConfig::CONFIG["host_os"]
   when /darwin/i then ".dylib"
@@ -32,34 +43,57 @@ def dylib_ext
 end
 
 PARSER_DIR = File.expand_path("~/.textbringer/parsers/#{platform}")
-FAVEOD_VERSION = "v0.1.0"
+FAVEOD_VERSION = "v4.11"
 
-# プリビルド済みで自動ダウンロードする言語
-PREBUILT_PARSERS = %w[ruby python javascript json bash]
+# 自動インストールする言語
+DEFAULT_PARSERS = %w[ruby python javascript json bash]
 
-def download_parser(language)
-  filename = "libtree-sitter-#{language}#{dylib_ext}"
-  dest_path = File.join(PARSER_DIR, filename)
+def download_and_extract_parsers
+  url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
 
-  return if File.exist?(dest_path)
+  puts "  Downloading parsers from Faveod..."
+  puts "  URL: #{url}"
 
-  url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/libtree-sitter-#{language}-#{platform}#{dylib_ext}"
+  Dir.mktmpdir do |tmpdir|
+    tarball = File.join(tmpdir, "parsers.tar.gz")
 
-  puts "  Downloading #{language}..."
+    begin
+      URI.open(url, "rb") do |remote|
+        File.open(tarball, "wb") do |local|
+          local.write(remote.read)
+        end
+      end
+    rescue OpenURI::HTTPError => e
+      puts "  Error: Failed to download: #{e.message}"
+      return false
+    end
 
-  begin
-    URI.open(url, "rb") do |remote|
-      File.open(dest_path, "wb") do |local|
-        local.write(remote.read)
+    # 展開
+    extract_dir = File.join(tmpdir, "extracted")
+    FileUtils.mkdir_p(extract_dir)
+
+    system("tar", "-xzf", tarball, "-C", extract_dir)
+
+    # parser ファイルを探してコピー
+    Dir.glob("#{extract_dir}/**/libtree-sitter-*#{dylib_ext}").each do |src|
+      filename = File.basename(src)
+      # libtree-sitter-{lang}.dylib の形式から lang を抽出
+      lang = filename.sub(/^libtree-sitter-/, "").sub(/#{Regexp.escape(dylib_ext)}$/, "")
+
+      if DEFAULT_PARSERS.include?(lang)
+        dest = File.join(PARSER_DIR, filename)
+        unless File.exist?(dest)
+          FileUtils.cp(src, dest)
+          FileUtils.chmod(0o755, dest)
+          puts "    #{lang} -> OK"
+        else
+          puts "    #{lang} -> already installed"
+        end
       end
     end
-    FileUtils.chmod(0o755, dest_path)
-    puts "    -> OK"
-  rescue OpenURI::HTTPError => e
-    puts "    -> Failed: #{e.message}"
-  rescue StandardError => e
-    puts "    -> Error: #{e.class}: #{e.message}"
   end
+
+  true
 end
 
 puts ""
@@ -71,10 +105,7 @@ puts "Directory: #{PARSER_DIR}"
 puts ""
 
 FileUtils.mkdir_p(PARSER_DIR)
-
-PREBUILT_PARSERS.each do |lang|
-  download_parser(lang)
-end
+download_and_extract_parsers
 
 puts ""
 puts "For additional parsers (HCL, YAML, Go, etc.):"
