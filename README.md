@@ -1,84 +1,81 @@
 # textbringer-tree-sitter
 
-Tree-sitter による Textbringer のシンタックスハイライトプラグイン。
+Tree-sitter based syntax highlighting plugin for Textbringer.
 
-## 特徴
+## Features
 
-- Tree-sitter による正確な構文解析
-- Rouge で認識されない Terraform/HCL の `for`, `in`, 関数呼び出しを正しくハイライト
-- Emacs 風の feature-based レベル制御
-- カスタマイズ可能なノードマッピング
+- Accurate syntax parsing with Tree-sitter
+- Properly highlights Terraform/HCL `for`, `in`, and function calls (which Rouge fails to recognize)
+- Emacs-style feature-based level control
+- Customizable node mappings
 
-## インストール
+## Installation
 
 ```ruby
 gem 'textbringer-tree-sitter'
 ```
 
-gem install 時に以下の parser が自動でダウンロードされます:
-- Ruby, Python, JavaScript, JSON, Bash
+### Installing Parsers
 
-### 追加 Parser のインストール
+Parsers are not bundled with the gem. Use the CLI tool to install them:
 
 ```bash
-# 利用可能な parser を確認
+# List available parsers
 textbringer-tree-sitter list
 
-# HCL (Terraform) parser をビルド＆インストール
+# Install a specific parser (downloads prebuilt or builds from source)
+textbringer-tree-sitter get ruby
 textbringer-tree-sitter get hcl
+textbringer-tree-sitter get markdown
 
-# YAML parser をビルド＆インストール
-textbringer-tree-sitter get yaml
-
-# Go parser をビルド＆インストール
-textbringer-tree-sitter get go
-
-# プリビルド済み parser をすべてインストール
+# Install all prebuilt parsers at once
 textbringer-tree-sitter get-all
 ```
 
-### Parser の配置場所
+### Parser Location
 
-Parser は `~/.textbringer/parsers/{platform}/` に配置されます。
+Parsers are stored in `~/.textbringer/parsers/{platform}/`.
 
 ```bash
-# 配置先を確認
+# Show parser directory
 textbringer-tree-sitter path
 ```
 
-## 使い方
+## Usage
 
-Mode で `use_tree_sitter` を呼ぶだけ:
+Once a parser is installed and a node_map exists for the language, syntax highlighting is automatically enabled for the corresponding Mode.
+
+For custom Modes, call `use_tree_sitter`:
 
 ```ruby
-class RubyMode < ProgrammingMode
+class MyMode < ProgrammingMode
   extend Textbringer::TreeSitterAdapter::ClassMethods
   use_tree_sitter :ruby
 end
 ```
 
-## カスタマイズ
+## Customization
 
-### ハイライトレベル (Emacs 風)
+### Highlight Level (Emacs-style)
 
 ```ruby
 # ~/.textbringer.rb
 
-# Level 1: comment, string のみ
+# Level 1: comment, string only
 # Level 2: + keyword, type, constant
-# Level 3: + function_name, variable, number (デフォルト)
+# Level 3: + function_name, variable, number (default)
 # Level 4: + operator, punctuation, builtin
 
 CONFIG[:tree_sitter_highlight_level] = 4
 ```
 
-### 個別 Feature 指定
+### Individual Feature Selection
 
 ```ruby
 CONFIG[:tree_sitter_enabled_features] = [:comment, :string, :keyword]
 ```
 
-### カスタムノードマッピング
+### Custom Node Mappings
 
 ```ruby
 Textbringer::TreeSitter::NodeMaps.register(:ruby, {
@@ -86,40 +83,34 @@ Textbringer::TreeSitter::NodeMaps.register(:ruby, {
 })
 ```
 
-### カスタム Parser パス
+### Custom Parser Path
 
 ```ruby
 CONFIG[:tree_sitter_parser_dir] = "/path/to/your/parsers"
 ```
 
-## サポート言語
+## Supported Languages
 
-### 自動インストール（プリビルド）
+### Prebuilt Parsers (via Faveod)
 
-| 言語 | 状態 |
-|------|------|
-| Ruby | ✓ 自動 |
-| Python | ✓ 自動 |
-| JavaScript | ✓ 自動 |
-| JSON | ✓ 自動 |
-| Bash | ✓ 自動 |
-| C | `get c` |
-| Java | `get java` |
-| Rust | `get rust` |
-| HTML | `get html` |
-| PHP | `get php` |
+bash, c, c-sharp, cobol, embedded-template, groovy, haml, html, java, javascript, json, pascal, php, python, ruby, rust
 
-### 要ビルド（コマンドで取得）
+### Build-required Parsers
 
-| 言語 | コマンド |
-|------|----------|
+| Language | Command |
+|----------|---------|
 | HCL (Terraform) | `textbringer-tree-sitter get hcl` |
 | YAML | `textbringer-tree-sitter get yaml` |
 | Go | `textbringer-tree-sitter get go` |
 | TypeScript | `textbringer-tree-sitter get typescript` |
-| C# | `textbringer-tree-sitter get csharp` |
-| Groovy | `textbringer-tree-sitter get groovy` |
+| TSX | `textbringer-tree-sitter get tsx` |
+| SQL | `textbringer-tree-sitter get sql` |
+| Markdown | `textbringer-tree-sitter get markdown` |
 
-## ライセンス
+## License
 
-WTFPL
+WTFPL - See LICENSE.txt for details.
+
+## Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
