@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "textbringer-tree-sitter"
   spec.version = Textbringer::TreeSitter::VERSION
   spec.authors = ["yancya"]
-  spec.email = ["yancya@gmail.com"]
+  spec.email = ["yancya@upec.jp"]
 
   spec.summary = "Tree-sitter based syntax highlighting for Textbringer"
   spec.description = "Provides accurate syntax highlighting using Tree-sitter parsers for Textbringer editor"
