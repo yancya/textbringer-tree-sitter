@@ -27,6 +27,10 @@ module Textbringer
       attr_reader :tree_sitter_language
     end
 
+    def self.debug?
+      ENV["TEXTBRINGER_TREE_SITTER_DEBUG"] == "1"
+    end
+
     module InstanceMethods
       def custom_highlight(window)
         window.instance_variable_set(:@highlight_on, {})
@@ -44,6 +48,13 @@ module Textbringer
         tree = parser.parse_string(nil, buffer_text)
         return unless tree
 
+        if TreeSitterAdapter.debug?
+          File.open("/tmp/tree_sitter_debug.log", "a") do |f|
+            f.puts "[#{Time.now}] custom_highlight"
+            f.puts "  base_pos=#{base_pos} buffer.bytesize=#{buffer_text.bytesize}"
+          end
+        end
+
         highlight_on = {}
         highlight_off = {}
 
@@ -56,6 +67,18 @@ module Textbringer
             # base_pos + offset でバッファ内の絶対位置を計算
             highlight_on[base_pos + start_byte] = attrs
             highlight_off[base_pos + end_byte] = attrs
+
+            if TreeSitterAdapter.debug? && highlight_on.size <= 5
+              File.open("/tmp/tree_sitter_debug.log", "a") do |f|
+                f.puts "  #{node.type} pos=#{base_pos + start_byte}-#{base_pos + end_byte} face=#{face}"
+              end
+            end
+          end
+        end
+
+        if TreeSitterAdapter.debug?
+          File.open("/tmp/tree_sitter_debug.log", "a") do |f|
+            f.puts "  total_highlights=#{highlight_on.size}"
           end
         end
 
@@ -66,7 +89,8 @@ module Textbringer
       private
 
       def can_highlight?
-        return false unless CONFIG[:colors] != false
+        # textbringer 本体と同じチェック: @@has_colors を使う
+        return false unless Window.class_variable_get(:@@has_colors)
         return false if CONFIG[:syntax_highlight] == false
 
         true
@@ -75,8 +99,7 @@ module Textbringer
       def get_parser
         @parser ||= begin
           return nil unless TreeSitterConfig.parser_available?(tree_sitter_language)
-
-          require "tree_sitter"
+          return nil unless defined?(::TreeSitter)
 
           parser_path = TreeSitterConfig.parser_path(tree_sitter_language)
           language = ::TreeSitter::Language.load(

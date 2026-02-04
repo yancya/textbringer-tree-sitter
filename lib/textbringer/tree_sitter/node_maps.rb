@@ -46,7 +46,7 @@ module Textbringer
         end
 
         def available_languages
-          default_maps.keys
+          (default_maps.keys + (@custom_maps&.keys || [])).uniq
         end
 
         private

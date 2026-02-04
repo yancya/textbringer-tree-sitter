@@ -39,6 +39,8 @@ module Textbringer
   end
 
   class Window
+    @@has_colors = true
+
     attr_accessor :highlight_on, :highlight_off
     attr_reader :buffer
 
@@ -50,6 +52,14 @@ module Textbringer
 
     def highlight
       # original highlight (no-op for tests)
+    end
+
+    def self.has_colors=(value)
+      @@has_colors = value
+    end
+
+    def self.has_colors
+      @@has_colors
     end
   end
 
