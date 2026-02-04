@@ -15,30 +15,35 @@ Tree-sitter による Textbringer のシンタックスハイライトプラグ�
 gem 'textbringer-tree-sitter'
 ```
 
-### Parser のインストール
+gem install 時に以下の parser が自動でダウンロードされます:
+- Ruby, Python, JavaScript, JSON, Bash
 
-Parser（`.dylib`/`.so`）は別途インストールが必要です。以下の場所を順に検索します:
-
-1. `CONFIG[:tree_sitter_parser_dir]` （カスタム指定）
-2. `~/.textbringer/parsers/{platform}/` （ユーザー共通、**推奨**）
-3. gem 内の `parsers/{platform}/`
-
-`{platform}` は `darwin-arm64`, `darwin-x64`, `linux-x64`, `linux-arm64` のいずれか。
+### 追加 Parser のインストール
 
 ```bash
-# ディレクトリ作成
-mkdir -p ~/.textbringer/parsers/darwin-arm64  # macOS Apple Silicon
-mkdir -p ~/.textbringer/parsers/linux-x64     # Linux x64
+# 利用可能な parser を確認
+textbringer-tree-sitter list
 
-# Ruby parser (プリビルド)
-curl -L -o ~/.textbringer/parsers/darwin-arm64/libtree-sitter-ruby.dylib \
-  https://github.com/Faveod/tree-sitter-parsers/releases/download/v0.1.0/libtree-sitter-ruby-darwin-arm64.dylib
+# HCL (Terraform) parser をビルド＆インストール
+textbringer-tree-sitter get hcl
 
-# HCL parser (要ビルド)
-git clone https://github.com/mitchellh/tree-sitter-hcl.git
-cd tree-sitter-hcl
-c++ -shared -fPIC -O2 -std=c++14 -Isrc src/parser.c src/scanner.cc -o libtree-sitter-hcl.dylib
-cp libtree-sitter-hcl.dylib ~/.textbringer/parsers/darwin-arm64/
+# YAML parser をビルド＆インストール
+textbringer-tree-sitter get yaml
+
+# Go parser をビルド＆インストール
+textbringer-tree-sitter get go
+
+# プリビルド済み parser をすべてインストール
+textbringer-tree-sitter get-all
+```
+
+### Parser の配置場所
+
+Parser は `~/.textbringer/parsers/{platform}/` に配置されます。
+
+```bash
+# 配置先を確認
+textbringer-tree-sitter path
 ```
 
 ## 使い方
@@ -89,25 +94,31 @@ CONFIG[:tree_sitter_parser_dir] = "/path/to/your/parsers"
 
 ## サポート言語
 
-| 言語 | Parser 取得元 |
-|------|--------------|
-| Bash | Faveod/tree-sitter-parsers |
-| C | Faveod/tree-sitter-parsers |
-| C# | Faveod/tree-sitter-parsers |
-| COBOL | Faveod/tree-sitter-parsers |
-| Groovy | Faveod/tree-sitter-parsers |
-| HAML | Faveod/tree-sitter-parsers |
-| HCL (Terraform) | mitchellh/tree-sitter-hcl (要ビルド) |
-| HTML | Faveod/tree-sitter-parsers |
-| Java | Faveod/tree-sitter-parsers |
-| JavaScript | Faveod/tree-sitter-parsers |
-| JSON | Faveod/tree-sitter-parsers |
-| Pascal | Faveod/tree-sitter-parsers |
-| PHP | Faveod/tree-sitter-parsers |
-| Python | Faveod/tree-sitter-parsers |
-| Ruby | Faveod/tree-sitter-parsers |
-| Rust | Faveod/tree-sitter-parsers |
-| YAML | tree-sitter-grammars/tree-sitter-yaml (要ビルド) |
+### 自動インストール（プリビルド）
+
+| 言語 | 状態 |
+|------|------|
+| Ruby | ✓ 自動 |
+| Python | ✓ 自動 |
+| JavaScript | ✓ 自動 |
+| JSON | ✓ 自動 |
+| Bash | ✓ 自動 |
+| C | `get c` |
+| Java | `get java` |
+| Rust | `get rust` |
+| HTML | `get html` |
+| PHP | `get php` |
+
+### 要ビルド（コマンドで取得）
+
+| 言語 | コマンド |
+|------|----------|
+| HCL (Terraform) | `textbringer-tree-sitter get hcl` |
+| YAML | `textbringer-tree-sitter get yaml` |
+| Go | `textbringer-tree-sitter get go` |
+| TypeScript | `textbringer-tree-sitter get typescript` |
+| C# | `textbringer-tree-sitter get csharp` |
+| Groovy | `textbringer-tree-sitter get groovy` |
 
 ## ライセンス
 

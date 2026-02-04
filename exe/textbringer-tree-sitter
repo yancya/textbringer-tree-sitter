@@ -1,0 +1,265 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require "open-uri"
+require "rbconfig"
+require "tmpdir"
+require "open3"
+
+module TextbringerTreeSitterCLI
+  class << self
+    def platform
+      os = case RbConfig::CONFIG["host_os"]
+           when /darwin/i then "darwin"
+           when /linux/i then "linux"
+           else "unknown"
+           end
+
+      arch = case RbConfig::CONFIG["host_cpu"]
+             when /arm64|aarch64/i then "arm64"
+             when /x86_64|amd64/i then "x64"
+             else "unknown"
+             end
+
+      "#{os}-#{arch}"
+    end
+
+    def dylib_ext
+      case RbConfig::CONFIG["host_os"]
+      when /darwin/i then ".dylib"
+      else ".so"
+      end
+    end
+
+    def parser_dir
+      File.expand_path("~/.textbringer/parsers/#{platform}")
+    end
+
+    # プリビルド済み（gem install 時に自動ダウンロード）
+    PREBUILT_PARSERS = {
+      ruby: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      bash: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      c: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      java: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      javascript: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      json: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      python: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      rust: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      html: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" },
+      php: { repo: "Faveod/tree-sitter-parsers", version: "v0.1.0" }
+    }.freeze
+
+    # 要ビルド（コマンドで取得）
+    BUILD_PARSERS = {
+      hcl: {
+        repo: "mitchellh/tree-sitter-hcl",
+        branch: "main",
+        build_cmd: -> (src_dir, out_file) {
+          "c++ -shared -fPIC -O2 -std=c++14 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.cc -o #{out_file}"
+        }
+      },
+      yaml: {
+        repo: "tree-sitter-grammars/tree-sitter-yaml",
+        branch: "master",
+        build_cmd: -> (src_dir, out_file) {
+          "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        }
+      },
+      # Faveod にないけどビルドで取得可能なもの
+      csharp: {
+        repo: "tree-sitter/tree-sitter-c-sharp",
+        branch: "master",
+        build_cmd: -> (src_dir, out_file) {
+          "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        }
+      },
+      groovy: {
+        repo: "tree-sitter-grammars/tree-sitter-groovy",
+        branch: "master",
+        build_cmd: -> (src_dir, out_file) {
+          "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+        }
+      },
+      go: {
+        repo: "tree-sitter/tree-sitter-go",
+        branch: "master",
+        build_cmd: -> (src_dir, out_file) {
+          "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+        }
+      },
+      typescript: {
+        repo: "tree-sitter/tree-sitter-typescript",
+        branch: "master",
+        subdir: "typescript",
+        build_cmd: -> (src_dir, out_file) {
+          "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        }
+      }
+    }.freeze
+
+    def download_prebuilt(language)
+      info = PREBUILT_PARSERS[language.to_sym]
+      unless info
+        puts "Error: #{language} is not a prebuilt parser"
+        puts "Use 'textbringer-tree-sitter get #{language}' to build from source"
+        return false
+      end
+
+      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      dest_path = File.join(parser_dir, filename)
+
+      if File.exist?(dest_path)
+        puts "#{language}: already installed at #{dest_path}"
+        return true
+      end
+
+      url = "https://github.com/#{info[:repo]}/releases/download/#{info[:version]}/libtree-sitter-#{language}-#{platform}#{dylib_ext}"
+
+      puts "Downloading #{language} parser..."
+      puts "  URL: #{url}"
+
+      begin
+        FileUtils.mkdir_p(parser_dir)
+        URI.open(url, "rb") do |remote|
+          File.open(dest_path, "wb") do |local|
+            local.write(remote.read)
+          end
+        end
+        FileUtils.chmod(0o755, dest_path)
+        puts "  -> #{dest_path}"
+        true
+      rescue OpenURI::HTTPError => e
+        puts "  Error: Failed to download: #{e.message}"
+        false
+      end
+    end
+
+    def build_parser(language)
+      info = BUILD_PARSERS[language.to_sym]
+      unless info
+        # プリビルドにあるか確認
+        if PREBUILT_PARSERS[language.to_sym]
+          return download_prebuilt(language)
+        end
+        puts "Error: Unknown language: #{language}"
+        return false
+      end
+
+      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      dest_path = File.join(parser_dir, filename)
+
+      if File.exist?(dest_path)
+        puts "#{language}: already installed at #{dest_path}"
+        return true
+      end
+
+      puts "Building #{language} parser..."
+      puts "  Repository: #{info[:repo]}"
+
+      Dir.mktmpdir do |tmpdir|
+        repo_dir = File.join(tmpdir, "repo")
+
+        # Clone
+        puts "  Cloning..."
+        _, status = Open3.capture2e("git", "clone", "--depth", "1", "-b", info[:branch],
+                                    "https://github.com/#{info[:repo]}.git", repo_dir)
+        unless status.success?
+          puts "  Error: Failed to clone repository"
+          return false
+        end
+
+        # Build
+        src_dir = info[:subdir] ? File.join(repo_dir, info[:subdir]) : repo_dir
+        build_cmd = info[:build_cmd].call(src_dir, dest_path)
+
+        puts "  Building..."
+        FileUtils.mkdir_p(parser_dir)
+        output, status = Open3.capture2e(build_cmd)
+
+        unless status.success?
+          puts "  Error: Build failed"
+          puts output
+          return false
+        end
+
+        FileUtils.chmod(0o755, dest_path)
+        puts "  -> #{dest_path}"
+        true
+      end
+    end
+
+    def list_parsers
+      puts "=== Prebuilt Parsers (auto-installed) ==="
+      PREBUILT_PARSERS.keys.sort.each do |lang|
+        status = parser_installed?(lang) ? "✓" : " "
+        puts "  [#{status}] #{lang}"
+      end
+
+      puts ""
+      puts "=== Build-required Parsers ==="
+      BUILD_PARSERS.keys.sort.each do |lang|
+        status = parser_installed?(lang) ? "✓" : " "
+        puts "  [#{status}] #{lang}"
+      end
+
+      puts ""
+      puts "Use 'textbringer-tree-sitter get <lang>' to install"
+    end
+
+    def parser_installed?(language)
+      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      File.exist?(File.join(parser_dir, filename))
+    end
+
+    def show_help
+      puts <<~HELP
+        textbringer-tree-sitter - Parser manager for textbringer-tree-sitter
+
+        Usage:
+          textbringer-tree-sitter list              List available parsers
+          textbringer-tree-sitter get <lang>        Download/build a parser
+          textbringer-tree-sitter get-all           Install all prebuilt parsers
+          textbringer-tree-sitter path              Show parser directory
+
+        Examples:
+          textbringer-tree-sitter get hcl           Build and install HCL parser
+          textbringer-tree-sitter get ruby          Download Ruby parser (prebuilt)
+          textbringer-tree-sitter list              Show all available parsers
+      HELP
+    end
+
+    def run(args)
+      command = args[0]
+
+      case command
+      when "list"
+        list_parsers
+      when "get"
+        lang = args[1]
+        if lang.nil?
+          puts "Error: Please specify a language"
+          puts "Usage: textbringer-tree-sitter get <lang>"
+          exit 1
+        end
+        success = build_parser(lang)
+        exit(success ? 0 : 1)
+      when "get-all"
+        puts "Installing all prebuilt parsers..."
+        PREBUILT_PARSERS.keys.each do |lang|
+          download_prebuilt(lang)
+        end
+      when "path"
+        puts parser_dir
+      when "help", "--help", "-h", nil
+        show_help
+      else
+        puts "Unknown command: #{command}"
+        show_help
+        exit 1
+      end
+    end
+  end
+end
+
+TextbringerTreeSitterCLI.run(ARGV)

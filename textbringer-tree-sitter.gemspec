@@ -25,6 +25,9 @@ Gem::Specification.new do |spec|
     end
   end
   spec.require_paths = ["lib"]
+  spec.extensions = ["ext/textbringer_tree_sitter/extconf.rb"]
+  spec.bindir = "exe"
+  spec.executables = ["textbringer-tree-sitter"]
 
   spec.add_dependency "textbringer", ">= 1.0"
   spec.add_dependency "ruby_tree_sitter", "~> 2.0"
