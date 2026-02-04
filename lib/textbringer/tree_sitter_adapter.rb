@@ -37,7 +37,10 @@ module Textbringer
         parser = get_parser
         return unless parser
 
-        buffer_text = window.buffer.to_s
+        buffer = window.buffer
+        # textbringer 本体と同じロジック: base_pos を基準にする
+        base_pos = buffer.point_min
+        buffer_text = buffer.to_s
         tree = parser.parse_string(nil, buffer_text)
         return unless tree
 
@@ -50,8 +53,9 @@ module Textbringer
 
           attrs = Face[face]&.attributes
           if attrs
-            highlight_on[start_byte] = attrs
-            highlight_off[end_byte] = attrs
+            # base_pos + offset でバッファ内の絶対位置を計算
+            highlight_on[base_pos + start_byte] = attrs
+            highlight_off[base_pos + end_byte] = attrs
           end
         end
 

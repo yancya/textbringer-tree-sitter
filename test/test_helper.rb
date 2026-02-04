@@ -69,6 +69,10 @@ module Textbringer
     def content=(str)
       @content = str
     end
+
+    def point_min
+      0
+    end
   end
 end
 
