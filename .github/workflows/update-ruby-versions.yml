@@ -12,7 +12,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      workflows: write
 
     steps:
       - uses: actions/checkout@v4
@@ -42,29 +41,24 @@ jobs:
           MIN_VERSION=$(echo "$SUPPORTED_VERSIONS" | tr ' ' '\n' | sort -V | head -1)
           echo "min_version=$MIN_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Update CI workflow
+      - name: Update gemspec
         id: update
         run: |
-          NEW_VERSIONS='${{ steps.ruby-versions.outputs.ci_versions }}'
           MIN_VERSION='${{ steps.ruby-versions.outputs.min_version }}'
+          CI_VERSIONS='${{ steps.ruby-versions.outputs.ci_versions }}'
 
-          echo "New versions: $NEW_VERSIONS"
           echo "Min version: $MIN_VERSION"
+          echo "CI versions: $CI_VERSIONS"
 
           # 空の場合はスキップ
-          if [ -z "$NEW_VERSIONS" ] || [ "$NEW_VERSIONS" = "[]" ]; then
+          if [ -z "$MIN_VERSION" ]; then
             echo "No supported versions found, skipping"
             echo "changed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # ci.yml を更新
-          sed -i "s/ruby-version: \[.*\]/ruby-version: $NEW_VERSIONS/" .github/workflows/ci.yml
-
           # gemspec を更新
-          if [ -n "$MIN_VERSION" ]; then
-            sed -i "s/spec.required_ruby_version = \">= [0-9.]*\"/spec.required_ruby_version = \">= $MIN_VERSION.0\"/" textbringer-tree-sitter.gemspec
-          fi
+          sed -i "s/spec.required_ruby_version = \">= [0-9.]*\"/spec.required_ruby_version = \">= $MIN_VERSION.0\"/" textbringer-tree-sitter.gemspec
 
           # 変更があるかチェック
           if git diff --quiet; then
@@ -95,8 +89,15 @@ jobs:
             - **Minimum version**: ${{ steps.ruby-versions.outputs.min_version }}
 
             ### Updated files
-            - `.github/workflows/ci.yml` - CI test matrix
             - `textbringer-tree-sitter.gemspec` - required_ruby_version
+
+            ### Manual action required
+            Please also update `.github/workflows/ci.yml` ruby-version matrix to:
+            ```yaml
+            ruby-version: ${{ steps.ruby-versions.outputs.ci_versions }}
+            ```
+
+            (GITHUB_TOKEN cannot modify workflow files - this requires a PAT)
 
             ---
             *This PR was automatically created by the update-ruby-versions workflow.*
