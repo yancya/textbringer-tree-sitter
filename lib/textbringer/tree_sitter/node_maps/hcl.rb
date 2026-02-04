@@ -18,7 +18,6 @@ module Textbringer
           for
           in
           if
-          else
           true
           false
           null

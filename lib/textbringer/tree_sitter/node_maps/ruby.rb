@@ -44,7 +44,6 @@ module Textbringer
           yield
           begin
           rescue
-          raise
           ensure
           and
           or
@@ -55,14 +54,9 @@ module Textbringer
           defined?
           self
           super
-          __FILE__
-          __LINE__
-          __ENCODING__
           BEGIN
           END
           lambda
-          async
-          await
         ],
         number: %i[integer float complex rational],
         constant: %i[constant],

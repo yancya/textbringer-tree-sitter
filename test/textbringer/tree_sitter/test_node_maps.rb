@@ -87,7 +87,6 @@ class NodeMapsTest < Minitest::Test
     assert_equal :keyword, node_map[:for]
     assert_equal :keyword, node_map[:in]
     assert_equal :keyword, node_map[:if]
-    assert_equal :keyword, node_map[:else]
     assert_equal :keyword, node_map[:true]
     assert_equal :keyword, node_map[:false]
     assert_equal :keyword, node_map[:null]
