@@ -17,7 +17,6 @@ jobs:
       - name: Triage with Claude
         uses: anthropics/claude-code-action@beta
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Analyze this GitHub issue and provide a helpful response.
 
