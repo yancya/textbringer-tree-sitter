@@ -9,13 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      contents: read
       id-token: write
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Triage with Claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@beta
         with:
-          prompt: |
+          direct_prompt: |
             REPO: ${{ github.repository }}
             ISSUE NUMBER: ${{ github.event.issue.number }}
             TITLE: ${{ github.event.issue.title }}
@@ -37,8 +40,9 @@ jobs:
             2. Provide initial analysis
             3. Suggest next steps if applicable
 
-            Respond in a concise, helpful manner by posting a comment.
-            If the issue is a false positive, recommend closing it.
+            Respond in a concise, helpful manner by posting a comment using:
+            gh issue comment ${{ github.event.issue.number }} --body "your response"
 
-          claude_args: |
-            --allowedTools "Bash(gh issue:*),Bash(gh search:*)"
+            Do NOT create branches or make code changes. Only post a comment.
+
+          allowed_tools: "Bash(gh issue:*),Bash(gh search:*)"
