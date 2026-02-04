@@ -7,10 +7,13 @@ module Textbringer
         comment: %i[comment],
         string: %i[
           string
+          string_content
           raw_string
           heredoc_body
+          heredoc_content
           heredoc_start
           ansi_c_string
+          translated_string
         ],
         keyword: %i[
           if
@@ -28,25 +31,36 @@ module Textbringer
           in
           function
           select
-          time
-          coproc
+          declare
+          local
+          readonly
+          export
+          unset
+          typeset
         ],
-        number: %i[],
+        number: %i[number],
         constant: %i[],
         function_name: %i[function_definition],
         variable: %i[
           variable_name
           special_variable_name
+          variable_assignment
         ],
         type: %i[],
         operator: %i[
           file_redirect
           heredoc_redirect
           herestring_redirect
+          test_operator
         ],
         punctuation: %i[],
-        builtin: %i[],
-        property: %i[]
+        builtin: %i[
+          test_command
+          command_substitution
+          process_substitution
+          expansion
+        ],
+        property: %i[array]
       }.freeze
 
       BASH = BASH_FEATURES.flat_map { |face, nodes|

@@ -8,23 +8,22 @@ module Textbringer
       HCL_FEATURES = {
         comment: %i[comment],
         string: %i[
-          string_lit
+          string_literal
           quoted_template
-          heredoc_template
-          template_literal
+          heredoc
+          template_expr
+          escape_sequence
         ],
         keyword: %i[
           for
           in
           if
           else
-          endif
-          endfor
           true
           false
           null
         ],
-        number: %i[numeric_lit],
+        number: %i[numeric_literal],
         constant: %i[],
         function_name: %i[function_call],
         variable: %i[
@@ -33,14 +32,17 @@ module Textbringer
         ],
         type: %i[],
         operator: %i[
-          binary_operation
-          unary_operation
+          binary_op
+          unary_op
+          operation
         ],
         punctuation: %i[],
         builtin: %i[],
         property: %i[
           attribute
           block
+          object
+          object_elem
         ]
       }.freeze
 
