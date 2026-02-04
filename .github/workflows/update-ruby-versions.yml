@@ -15,25 +15,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get supported Ruby versions from endoflife.date
         id: ruby-versions
         run: |
           # endoflife.date API から Ruby のサポート情報を取得
-          # eol が false または未来の日付のものがサポート中
+          # support が false でない（通常サポート中）のもののみ対象
+          # eol のみで support が終了しているものは除外
           TODAY=$(date +%Y-%m-%d)
 
+          # support (通常サポート) が有効なバージョンのみ取得
+          # support == false または support < today のものは除外
           SUPPORTED_VERSIONS=$(curl -sL "https://endoflife.date/api/ruby.json" | jq -r --arg today "$TODAY" '
             [.[] | select(
-              (.eol == false) or
-              ((.eol | type) == "string" and .eol > $today)
-            ) | .cycle] | sort | reverse | join(" ")
+              (.support == false | not) and
+              ((.support | type) != "string" or .support > $today)
+            ) | .cycle] | sort_by(. | split(".") | map(tonumber)) | reverse | join(" ")
           ')
 
-          echo "Supported Ruby versions: $SUPPORTED_VERSIONS"
+          echo "Supported Ruby versions (normal maintenance): $SUPPORTED_VERSIONS"
           echo "versions=$SUPPORTED_VERSIONS" >> $GITHUB_OUTPUT
 
-          # CI 用の JSON 配列形式に変換 (例: "['3.3', '3.4', '4.0']")
+          # CI 用の JSON 配列形式に変換
           CI_VERSIONS=$(echo "$SUPPORTED_VERSIONS" | tr ' ' '\n' | jq -R . | jq -s -c .)
           echo "ci_versions=$CI_VERSIONS" >> $GITHUB_OUTPUT
 
@@ -41,34 +46,43 @@ jobs:
           MIN_VERSION=$(echo "$SUPPORTED_VERSIONS" | tr ' ' '\n' | sort -V | head -1)
           echo "min_version=$MIN_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check current CI versions
-        id: current
-        run: |
-          CURRENT=$(grep -oP "ruby-version: \[\K[^\]]+(?=\])" .github/workflows/ci.yml || echo "")
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-
       - name: Update CI workflow
         id: update
         run: |
           NEW_VERSIONS='${{ steps.ruby-versions.outputs.ci_versions }}'
           MIN_VERSION='${{ steps.ruby-versions.outputs.min_version }}'
 
+          echo "New versions: $NEW_VERSIONS"
+          echo "Min version: $MIN_VERSION"
+
+          # 空の場合はスキップ
+          if [ -z "$NEW_VERSIONS" ] || [ "$NEW_VERSIONS" = "[]" ]; then
+            echo "No supported versions found, skipping"
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           # ci.yml を更新
           sed -i "s/ruby-version: \[.*\]/ruby-version: $NEW_VERSIONS/" .github/workflows/ci.yml
 
           # gemspec を更新
-          sed -i "s/spec.required_ruby_version = \">= [0-9.]*\"/spec.required_ruby_version = \">= $MIN_VERSION.0\"/" textbringer-tree-sitter.gemspec
+          if [ -n "$MIN_VERSION" ]; then
+            sed -i "s/spec.required_ruby_version = \">= [0-9.]*\"/spec.required_ruby_version = \">= $MIN_VERSION.0\"/" textbringer-tree-sitter.gemspec
+          fi
 
           # 変更があるかチェック
           if git diff --quiet; then
+            echo "No changes detected"
             echo "changed=false" >> $GITHUB_OUTPUT
           else
+            echo "Changes detected:"
+            git diff
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Create Pull Request
         if: steps.update.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: Update supported Ruby versions"
@@ -77,6 +91,8 @@ jobs:
             ## Ruby Version Update
 
             This PR updates the supported Ruby versions based on [endoflife.date](https://endoflife.date/ruby).
+
+            Only versions with **normal maintenance** (not security-only) are included.
 
             ### Changes
             - **Supported versions**: ${{ steps.ruby-versions.outputs.versions }}
