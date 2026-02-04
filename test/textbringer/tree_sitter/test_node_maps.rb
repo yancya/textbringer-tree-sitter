@@ -61,7 +61,8 @@ class NodeMapsTest < Minitest::Test
   def test_ruby_function_name_mapping
     node_map = Textbringer::TreeSitter::NodeMaps.for(:ruby)
 
-    assert_equal :function_name, node_map[:method_name]
+    assert_equal :function_name, node_map[:method]
+    assert_equal :function_name, node_map[:singleton_method]
   end
 
   def test_ruby_features_structure
@@ -102,14 +103,14 @@ class NodeMapsTest < Minitest::Test
   def test_hcl_string_mapping
     node_map = Textbringer::TreeSitter::NodeMaps.for(:hcl)
 
-    assert_equal :string, node_map[:string_lit]
+    assert_equal :string, node_map[:string_literal]
     assert_equal :string, node_map[:quoted_template]
   end
 
   def test_hcl_number_mapping
     node_map = Textbringer::TreeSitter::NodeMaps.for(:hcl)
 
-    assert_equal :number, node_map[:numeric_lit]
+    assert_equal :number, node_map[:numeric_literal]
   end
 
   def test_hcl_comment_mapping
