@@ -64,3 +64,4 @@ parsers/**/*.so
 
 # Bundler
 Gemfile.lock
+Makefile
