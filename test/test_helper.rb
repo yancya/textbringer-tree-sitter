@@ -3,6 +3,8 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
 require "minitest/autorun"
+require "fileutils"
+require "tmpdir"
 
 # Textbringer モック実装（実 gem 依存なし）
 module Textbringer

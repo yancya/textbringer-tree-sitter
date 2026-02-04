@@ -15,18 +15,30 @@ Tree-sitter による Textbringer のシンタックスハイライトプラグ�
 gem 'textbringer-tree-sitter'
 ```
 
-Parser は別途インストールが必要です:
+### Parser のインストール
+
+Parser（`.dylib`/`.so`）は別途インストールが必要です。以下の場所を順に検索します:
+
+1. `CONFIG[:tree_sitter_parser_dir]` （カスタム指定）
+2. `~/.textbringer/parsers/{platform}/` （ユーザー共通、**推奨**）
+3. gem 内の `parsers/{platform}/`
+
+`{platform}` は `darwin-arm64`, `darwin-x64`, `linux-x64`, `linux-arm64` のいずれか。
 
 ```bash
-# Ruby parser
-curl -L -o parsers/darwin-arm64/libtree-sitter-ruby.dylib \
+# ディレクトリ作成
+mkdir -p ~/.textbringer/parsers/darwin-arm64  # macOS Apple Silicon
+mkdir -p ~/.textbringer/parsers/linux-x64     # Linux x64
+
+# Ruby parser (プリビルド)
+curl -L -o ~/.textbringer/parsers/darwin-arm64/libtree-sitter-ruby.dylib \
   https://github.com/Faveod/tree-sitter-parsers/releases/download/v0.1.0/libtree-sitter-ruby-darwin-arm64.dylib
 
-# HCL parser (mitchellh/tree-sitter-hcl からビルド)
+# HCL parser (要ビルド)
 git clone https://github.com/mitchellh/tree-sitter-hcl.git
 cd tree-sitter-hcl
 c++ -shared -fPIC -O2 -std=c++14 -Isrc src/parser.c src/scanner.cc -o libtree-sitter-hcl.dylib
-cp libtree-sitter-hcl.dylib /path/to/gem/parsers/darwin-arm64/
+cp libtree-sitter-hcl.dylib ~/.textbringer/parsers/darwin-arm64/
 ```
 
 ## 使い方
@@ -67,6 +79,12 @@ CONFIG[:tree_sitter_enabled_features] = [:comment, :string, :keyword]
 Textbringer::TreeSitter::NodeMaps.register(:ruby, {
   my_custom_node: :keyword
 })
+```
+
+### カスタム Parser パス
+
+```ruby
+CONFIG[:tree_sitter_parser_dir] = "/path/to/your/parsers"
 ```
 
 ## サポート言語

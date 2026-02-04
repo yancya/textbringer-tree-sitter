@@ -75,15 +75,15 @@ module Textbringer
           require "tree_sitter"
 
           parser_path = TreeSitterConfig.parser_path(tree_sitter_language)
-          language = TreeSitter::Language.load(
+          language = ::TreeSitter::Language.load(
             tree_sitter_language.to_s,
             parser_path
           )
 
-          parser = TreeSitter::Parser.new
+          parser = ::TreeSitter::Parser.new
           parser.language = language
           parser
-        rescue LoadError, TreeSitter::Error
+        rescue LoadError, ::TreeSitter::TreeSitterError, ::TreeSitter::LanguageLoadError
           nil
         end
       end

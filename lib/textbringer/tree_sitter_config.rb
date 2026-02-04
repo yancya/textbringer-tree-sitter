@@ -28,16 +28,48 @@ module Textbringer
         end
       end
 
+      # Parser を探索するディレクトリのリスト（優先順位順）
+      def parser_search_paths
+        paths = []
+
+        # 1. CONFIG で指定されたカスタムパス（最優先）
+        if defined?(CONFIG) && CONFIG[:tree_sitter_parser_dir]
+          paths << CONFIG[:tree_sitter_parser_dir]
+        end
+
+        # 2. ~/.textbringer/parsers/{platform}（ユーザー共通）
+        paths << File.expand_path("~/.textbringer/parsers/#{platform}")
+
+        # 3. gem 内の parsers/{platform}（デフォルト）
+        paths << File.expand_path("../../../parsers/#{platform}", __FILE__)
+
+        paths
+      end
+
+      # 後方互換性のため、最初に見つかったパスを返す
       def parser_dir
-        File.expand_path("../../../parsers/#{platform}", __FILE__)
+        parser_search_paths.find { |path| Dir.exist?(path) } || parser_search_paths.last
       end
 
       def parser_path(language)
-        File.join(parser_dir, "libtree-sitter-#{language}#{dylib_ext}")
+        filename = "libtree-sitter-#{language}#{dylib_ext}"
+
+        # 検索パスから parser を探す
+        parser_search_paths.each do |dir|
+          path = File.join(dir, filename)
+          return path if File.exist?(path)
+        end
+
+        # 見つからない場合はデフォルトパスを返す
+        File.join(parser_search_paths.last, filename)
       end
 
       def parser_available?(language)
-        File.exist?(parser_path(language))
+        filename = "libtree-sitter-#{language}#{dylib_ext}"
+
+        parser_search_paths.any? do |dir|
+          File.exist?(File.join(dir, filename))
+        end
       end
 
       def define_default_faces

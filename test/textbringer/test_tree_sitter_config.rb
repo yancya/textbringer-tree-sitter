@@ -76,4 +76,49 @@ class TreeSitterConfigTest < Minitest::Test
   def test_parser_available_returns_false_for_missing_parser
     refute Textbringer::TreeSitterConfig.parser_available?(:nonexistent_language)
   end
+
+  def test_parser_search_paths_includes_user_dir
+    paths = Textbringer::TreeSitterConfig.parser_search_paths
+    platform = Textbringer::TreeSitterConfig.platform
+
+    # ~/.textbringer/parsers/{platform} が含まれる
+    user_path = File.expand_path("~/.textbringer/parsers/#{platform}")
+    assert_includes paths, user_path
+  end
+
+  def test_parser_search_paths_includes_gem_dir
+    paths = Textbringer::TreeSitterConfig.parser_search_paths
+
+    # gem 内の parsers/{platform} が含まれる
+    assert paths.any? { |p| p.include?("parsers") && p.include?(Textbringer::TreeSitterConfig.platform) }
+  end
+
+  def test_custom_parser_dir_via_config
+    Textbringer::CONFIG[:tree_sitter_parser_dir] = "/custom/parser/dir"
+
+    paths = Textbringer::TreeSitterConfig.parser_search_paths
+    assert_equal "/custom/parser/dir", paths.first
+
+    Textbringer::CONFIG.delete(:tree_sitter_parser_dir)
+  end
+
+  def test_parser_path_finds_in_search_paths
+    # 一時ディレクトリに parser を配置してテスト
+    Dir.mktmpdir do |tmpdir|
+      platform = Textbringer::TreeSitterConfig.platform
+      parser_dir = File.join(tmpdir, platform)
+      FileUtils.mkdir_p(parser_dir)
+
+      ext = Textbringer::TreeSitterConfig.dylib_ext
+      parser_file = File.join(parser_dir, "libtree-sitter-testlang#{ext}")
+      FileUtils.touch(parser_file)
+
+      Textbringer::CONFIG[:tree_sitter_parser_dir] = parser_dir
+
+      assert Textbringer::TreeSitterConfig.parser_available?(:testlang)
+      assert_equal parser_file, Textbringer::TreeSitterConfig.parser_path(:testlang)
+
+      Textbringer::CONFIG.delete(:tree_sitter_parser_dir)
+    end
+  end
 end
