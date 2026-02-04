@@ -162,5 +162,315 @@ class NodeMapsTest < Minitest::Test
 
     assert_includes languages, :ruby
     assert_includes languages, :hcl
+    # prebuild 済み言語
+    assert_includes languages, :bash
+    assert_includes languages, :c
+    assert_includes languages, :csharp
+    assert_includes languages, :cobol
+    assert_includes languages, :groovy
+    assert_includes languages, :haml
+    assert_includes languages, :html
+    assert_includes languages, :java
+    assert_includes languages, :javascript
+    assert_includes languages, :json
+    assert_includes languages, :pascal
+    assert_includes languages, :php
+    assert_includes languages, :python
+    assert_includes languages, :rust
+    assert_includes languages, :yaml
+  end
+
+  # Bash
+  def test_bash_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:bash)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :string, node_map[:raw_string]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:then]
+    assert_equal :keyword, node_map[:fi]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:do]
+    assert_equal :keyword, node_map[:done]
+    assert_equal :keyword, node_map[:case]
+    assert_equal :keyword, node_map[:esac]
+    assert_equal :function_name, node_map[:function_definition]
+    assert_equal :variable, node_map[:variable_name]
+  end
+
+  # C
+  def test_c_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:c)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string_literal]
+    assert_equal :string, node_map[:char_literal]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:struct]
+    assert_equal :keyword, node_map[:typedef]
+    assert_equal :number, node_map[:number_literal]
+    assert_equal :type, node_map[:primitive_type]
+    assert_equal :type, node_map[:type_identifier]
+    assert_equal :function_name, node_map[:function_declarator]
+  end
+
+  # C#
+  def test_csharp_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:csharp)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string_literal]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:class]
+    assert_equal :keyword, node_map[:namespace]
+    assert_equal :keyword, node_map[:using]
+    assert_equal :keyword, node_map[:public]
+    assert_equal :keyword, node_map[:private]
+    assert_equal :number, node_map[:integer_literal]
+    assert_equal :type, node_map[:predefined_type]
+  end
+
+  # COBOL
+  def test_cobol_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:cobol)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string_literal]
+    assert_equal :number, node_map[:number]
+    assert_equal :keyword, node_map[:PERFORM]
+    assert_equal :keyword, node_map[:IF]
+    assert_equal :keyword, node_map[:ELSE]
+    assert_equal :keyword, node_map[:END]
+    assert_equal :keyword, node_map[:MOVE]
+    assert_equal :keyword, node_map[:DISPLAY]
+  end
+
+  # Groovy
+  def test_groovy_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:groovy)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:def]
+    assert_equal :keyword, node_map[:class]
+    assert_equal :number, node_map[:number_literal]
+  end
+
+  # HAML
+  def test_haml_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:haml)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :keyword, node_map[:doctype]
+    assert_equal :property, node_map[:tag_name]
+    assert_equal :property, node_map[:id]
+    assert_equal :property, node_map[:class]
+  end
+
+  # HTML
+  def test_html_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:html)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:attribute_value]
+    assert_equal :keyword, node_map[:doctype]
+    assert_equal :property, node_map[:tag_name]
+    assert_equal :property, node_map[:attribute_name]
+  end
+
+  # Java
+  def test_java_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:java)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :comment, node_map[:line_comment]
+    assert_equal :comment, node_map[:block_comment]
+    assert_equal :string, node_map[:string_literal]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:class]
+    assert_equal :keyword, node_map[:public]
+    assert_equal :keyword, node_map[:private]
+    assert_equal :keyword, node_map[:static]
+    assert_equal :number, node_map[:decimal_integer_literal]
+    assert_equal :type, node_map[:type_identifier]
+  end
+
+  # JavaScript
+  def test_javascript_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:javascript)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :string, node_map[:template_string]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:function]
+    assert_equal :keyword, node_map[:const]
+    assert_equal :keyword, node_map[:let]
+    assert_equal :keyword, node_map[:var]
+    assert_equal :keyword, node_map[:class]
+    assert_equal :keyword, node_map[:import]
+    assert_equal :keyword, node_map[:export]
+    assert_equal :number, node_map[:number]
+    assert_equal :builtin, node_map[:true]
+    assert_equal :builtin, node_map[:false]
+    assert_equal :builtin, node_map[:null]
+    assert_equal :builtin, node_map[:undefined]
+  end
+
+  # JSON
+  def test_json_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:json)
+
+    assert_equal :string, node_map[:string]
+    assert_equal :number, node_map[:number]
+    assert_equal :builtin, node_map[:true]
+    assert_equal :builtin, node_map[:false]
+    assert_equal :builtin, node_map[:null]
+    assert_equal :property, node_map[:pair]
+  end
+
+  # Pascal
+  def test_pascal_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:pascal)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :keyword, node_map[:kBegin]
+    assert_equal :keyword, node_map[:kEnd]
+    assert_equal :keyword, node_map[:kIf]
+    assert_equal :keyword, node_map[:kThen]
+    assert_equal :keyword, node_map[:kElse]
+    assert_equal :keyword, node_map[:kFor]
+    assert_equal :keyword, node_map[:kWhile]
+    assert_equal :keyword, node_map[:kFunction]
+    assert_equal :keyword, node_map[:kProcedure]
+    assert_equal :keyword, node_map[:kVar]
+    assert_equal :number, node_map[:integer]
+    assert_equal :number, node_map[:real]
+  end
+
+  # PHP
+  def test_php_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:php)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :string, node_map[:encapsed_string]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:foreach]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:function]
+    assert_equal :keyword, node_map[:class]
+    assert_equal :keyword, node_map[:public]
+    assert_equal :keyword, node_map[:private]
+    assert_equal :keyword, node_map[:namespace]
+    assert_equal :keyword, node_map[:use]
+    assert_equal :number, node_map[:integer]
+    assert_equal :number, node_map[:float]
+    assert_equal :variable, node_map[:variable_name]
+  end
+
+  # Python
+  def test_python_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:python)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:elif]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:def]
+    assert_equal :keyword, node_map[:class]
+    assert_equal :keyword, node_map[:import]
+    assert_equal :keyword, node_map[:from]
+    assert_equal :keyword, node_map[:as]
+    assert_equal :keyword, node_map[:with]
+    assert_equal :keyword, node_map[:try]
+    assert_equal :keyword, node_map[:except]
+    assert_equal :keyword, node_map[:finally]
+    assert_equal :number, node_map[:integer]
+    assert_equal :number, node_map[:float]
+    assert_equal :builtin, node_map[:true]
+    assert_equal :builtin, node_map[:false]
+    assert_equal :builtin, node_map[:none]
+  end
+
+  # Rust
+  def test_rust_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:rust)
+
+    assert_equal :comment, node_map[:line_comment]
+    assert_equal :comment, node_map[:block_comment]
+    assert_equal :string, node_map[:string_literal]
+    assert_equal :string, node_map[:char_literal]
+    assert_equal :keyword, node_map[:if]
+    assert_equal :keyword, node_map[:else]
+    assert_equal :keyword, node_map[:for]
+    assert_equal :keyword, node_map[:while]
+    assert_equal :keyword, node_map[:loop]
+    assert_equal :keyword, node_map[:return]
+    assert_equal :keyword, node_map[:fn]
+    assert_equal :keyword, node_map[:let]
+    assert_equal :keyword, node_map[:mut]
+    assert_equal :keyword, node_map[:struct]
+    assert_equal :keyword, node_map[:enum]
+    assert_equal :keyword, node_map[:impl]
+    assert_equal :keyword, node_map[:trait]
+    assert_equal :keyword, node_map[:pub]
+    assert_equal :keyword, node_map[:mod]
+    assert_equal :keyword, node_map[:use]
+    assert_equal :number, node_map[:integer_literal]
+    assert_equal :number, node_map[:float_literal]
+    assert_equal :type, node_map[:type_identifier]
+    assert_equal :type, node_map[:primitive_type]
+    assert_equal :builtin, node_map[:true]
+    assert_equal :builtin, node_map[:false]
+  end
+
+  # YAML
+  def test_yaml_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:yaml)
+
+    assert_equal :comment, node_map[:comment]
+    assert_equal :string, node_map[:string_scalar]
+    assert_equal :string, node_map[:double_quote_scalar]
+    assert_equal :string, node_map[:single_quote_scalar]
+    assert_equal :number, node_map[:integer_scalar]
+    assert_equal :number, node_map[:float_scalar]
+    assert_equal :builtin, node_map[:boolean_scalar]
+    assert_equal :builtin, node_map[:null_scalar]
+    assert_equal :property, node_map[:block_mapping_pair]
+    assert_equal :keyword, node_map[:anchor]
+    assert_equal :keyword, node_map[:alias]
   end
 end

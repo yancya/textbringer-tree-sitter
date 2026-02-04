@@ -2,6 +2,21 @@
 
 require_relative "node_maps/ruby"
 require_relative "node_maps/hcl"
+require_relative "node_maps/bash"
+require_relative "node_maps/c"
+require_relative "node_maps/csharp"
+require_relative "node_maps/cobol"
+require_relative "node_maps/groovy"
+require_relative "node_maps/haml"
+require_relative "node_maps/html"
+require_relative "node_maps/java"
+require_relative "node_maps/javascript"
+require_relative "node_maps/json"
+require_relative "node_maps/pascal"
+require_relative "node_maps/php"
+require_relative "node_maps/python"
+require_relative "node_maps/rust"
+require_relative "node_maps/yaml"
 
 module Textbringer
   module TreeSitter
@@ -39,7 +54,22 @@ module Textbringer
         def default_maps
           {
             ruby: RUBY,
-            hcl: HCL
+            hcl: HCL,
+            bash: BASH,
+            c: C,
+            csharp: CSHARP,
+            cobol: COBOL,
+            groovy: GROOVY,
+            haml: HAML,
+            html: HTML,
+            java: JAVA,
+            javascript: JAVASCRIPT,
+            json: JSON_LANG,
+            pascal: PASCAL,
+            php: PHP,
+            python: PYTHON,
+            rust: RUST,
+            yaml: YAML_LANG
           }
         end
       end

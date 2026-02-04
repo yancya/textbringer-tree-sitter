@@ -71,8 +71,25 @@ Textbringer::TreeSitter::NodeMaps.register(:ruby, {
 
 ## サポート言語
 
-- Ruby
-- HCL (Terraform)
+| 言語 | Parser 取得元 |
+|------|--------------|
+| Bash | Faveod/tree-sitter-parsers |
+| C | Faveod/tree-sitter-parsers |
+| C# | Faveod/tree-sitter-parsers |
+| COBOL | Faveod/tree-sitter-parsers |
+| Groovy | Faveod/tree-sitter-parsers |
+| HAML | Faveod/tree-sitter-parsers |
+| HCL (Terraform) | mitchellh/tree-sitter-hcl (要ビルド) |
+| HTML | Faveod/tree-sitter-parsers |
+| Java | Faveod/tree-sitter-parsers |
+| JavaScript | Faveod/tree-sitter-parsers |
+| JSON | Faveod/tree-sitter-parsers |
+| Pascal | Faveod/tree-sitter-parsers |
+| PHP | Faveod/tree-sitter-parsers |
+| Python | Faveod/tree-sitter-parsers |
+| Ruby | Faveod/tree-sitter-parsers |
+| Rust | Faveod/tree-sitter-parsers |
+| YAML | tree-sitter-grammars/tree-sitter-yaml (要ビルド) |
 
 ## ライセンス
 
