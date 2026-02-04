@@ -65,6 +65,14 @@ LANGUAGE_FILE_PATTERNS = {
   sql: /\.sql$/i,
   yaml: /\.(ya?ml)$/i,
   json: /\.json$/i,
+  python: /\.py$/i,
+  rust: /\.rs$/i,
+  java: /\.java$/i,
+  c: /\.[ch]$/i,
+  javascript: /\.m?js$/i,
+  bash: /\.(sh|bash)$/i,
+  php: /\.php$/i,
+  html: /\.html?$/i,
 }.freeze
 
 # parser + node_map がある言語で、Mode がなければ自動生成
