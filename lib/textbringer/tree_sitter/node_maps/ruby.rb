@@ -8,10 +8,17 @@ module Textbringer
       RUBY_FEATURES = {
         comment: %i[comment],
         string: %i[
+          string
           string_content
           heredoc_content
+          heredoc_body
           simple_symbol
+          delimited_symbol
+          bare_symbol
           escape_sequence
+          character
+          subshell
+          regex
         ],
         keyword: %i[
           def
@@ -37,7 +44,6 @@ module Textbringer
           yield
           begin
           rescue
-          raise
           ensure
           and
           or
@@ -48,29 +54,33 @@ module Textbringer
           defined?
           self
           super
-          __FILE__
-          __LINE__
-          __ENCODING__
+          BEGIN
+          END
+          lambda
         ],
         number: %i[integer float complex rational],
         constant: %i[constant],
-        function_name: %i[method_name],
+        function_name: %i[
+          method
+          singleton_method
+        ],
         variable: %i[
           identifier
           instance_variable
           class_variable
           global_variable
         ],
-        type: %i[],
+        type: %i[singleton_class],
         operator: %i[
           binary
           unary
           assignment
           operator
+          operator_assignment
         ],
         punctuation: %i[],
         builtin: %i[nil true false],
-        property: %i[]
+        property: %i[hash array block]
       }.freeze
 
       # Feature → Face の展開
