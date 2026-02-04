@@ -1,0 +1,95 @@
+name: Update Ruby Versions
+
+on:
+  schedule:
+    # 毎月1日 9:00 JST (0:00 UTC)
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  update-ruby-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get supported Ruby versions from endoflife.date
+        id: ruby-versions
+        run: |
+          # endoflife.date API から Ruby のサポート情報を取得
+          # eol が false または未来の日付のものがサポート中
+          TODAY=$(date +%Y-%m-%d)
+
+          SUPPORTED_VERSIONS=$(curl -sL "https://endoflife.date/api/ruby.json" | jq -r --arg today "$TODAY" '
+            [.[] | select(
+              (.eol == false) or
+              ((.eol | type) == "string" and .eol > $today)
+            ) | .cycle] | sort | reverse | join(" ")
+          ')
+
+          echo "Supported Ruby versions: $SUPPORTED_VERSIONS"
+          echo "versions=$SUPPORTED_VERSIONS" >> $GITHUB_OUTPUT
+
+          # CI 用の JSON 配列形式に変換 (例: "['3.3', '3.4', '4.0']")
+          CI_VERSIONS=$(echo "$SUPPORTED_VERSIONS" | tr ' ' '\n' | jq -R . | jq -s -c .)
+          echo "ci_versions=$CI_VERSIONS" >> $GITHUB_OUTPUT
+
+          # 最小バージョン（gemspec 用）
+          MIN_VERSION=$(echo "$SUPPORTED_VERSIONS" | tr ' ' '\n' | sort -V | head -1)
+          echo "min_version=$MIN_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check current CI versions
+        id: current
+        run: |
+          CURRENT=$(grep -oP "ruby-version: \[\K[^\]]+(?=\])" .github/workflows/ci.yml || echo "")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Update CI workflow
+        id: update
+        run: |
+          NEW_VERSIONS='${{ steps.ruby-versions.outputs.ci_versions }}'
+          MIN_VERSION='${{ steps.ruby-versions.outputs.min_version }}'
+
+          # ci.yml を更新
+          sed -i "s/ruby-version: \[.*\]/ruby-version: $NEW_VERSIONS/" .github/workflows/ci.yml
+
+          # gemspec を更新
+          sed -i "s/spec.required_ruby_version = \">= [0-9.]*\"/spec.required_ruby_version = \">= $MIN_VERSION.0\"/" textbringer-tree-sitter.gemspec
+
+          # 変更があるかチェック
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: Update supported Ruby versions"
+          title: "[Auto] Update supported Ruby versions"
+          body: |
+            ## Ruby Version Update
+
+            This PR updates the supported Ruby versions based on [endoflife.date](https://endoflife.date/ruby).
+
+            ### Changes
+            - **Supported versions**: ${{ steps.ruby-versions.outputs.versions }}
+            - **Minimum version**: ${{ steps.ruby-versions.outputs.min_version }}
+
+            ### Updated files
+            - `.github/workflows/ci.yml` - CI test matrix
+            - `textbringer-tree-sitter.gemspec` - required_ruby_version
+
+            ---
+            *This PR was automatically created by the update-ruby-versions workflow.*
+          branch: auto/update-ruby-versions
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
