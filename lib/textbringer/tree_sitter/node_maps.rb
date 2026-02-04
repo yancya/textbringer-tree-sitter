@@ -16,6 +16,7 @@ require_relative "node_maps/pascal"
 require_relative "node_maps/php"
 require_relative "node_maps/python"
 require_relative "node_maps/rust"
+require_relative "node_maps/sql"
 require_relative "node_maps/yaml"
 
 module Textbringer
@@ -69,6 +70,7 @@ module Textbringer
             php: PHP,
             python: PYTHON,
             rust: RUST,
+            sql: SQL,
             yaml: YAML_LANG
           }
         end

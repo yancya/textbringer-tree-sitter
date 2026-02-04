@@ -91,6 +91,11 @@ Textbringer::TreeSitter::NodeMaps.available_languages.each do |language|
       Textbringer.class_eval <<~RUBY, __FILE__, __LINE__ + 1
         class #{mode_name} < ProgrammingMode
           self.file_name_pattern = #{pattern.inspect}
+
+          # 最低限の indent_line を定義（改行できるように）
+          def indent_line
+            # デフォルトは何もしない
+          end
         end
       RUBY
     end
