@@ -7,6 +7,9 @@ require "rbconfig"
 require "tmpdir"
 require "open3"
 
+# Load LanguageAliases for normalization
+require_relative "../lib/textbringer/tree_sitter/language_aliases"
+
 module TextbringerTreeSitterCLI
   FAVEOD_VERSION = "v4.11"
 
@@ -113,25 +116,28 @@ module TextbringerTreeSitterCLI
     end
 
     def parser_installed?(language)
-      # c-sharp -> csharp の変換
-      lang_name = language.to_s.gsub("-", "")
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       File.exist?(File.join(parser_dir, filename))
     end
 
     def download_faveod_parser(language)
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+
       # Faveod tarball から特定の parser をインストール
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       dest_path = File.join(parser_dir, filename)
 
       if File.exist?(dest_path)
-        puts "#{language}: already installed"
+        puts "#{normalized}: already installed"
         return true
       end
 
       url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
 
-      puts "Downloading #{language} from Faveod..."
+      puts "Downloading #{normalized} from Faveod..."
 
       Dir.mktmpdir do |tmpdir|
         tarball = File.join(tmpdir, "parsers.tar.gz")
@@ -157,14 +163,16 @@ module TextbringerTreeSitterCLI
           puts "  -> #{dest_path}"
           true
         else
-          puts "  Error: #{language} not found in tarball"
+          puts "  Error: #{normalized} not found in tarball"
           false
         end
       end
     end
 
     def build_parser(language)
-      lang_sym = language.to_s.gsub("-", "_").to_sym
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      lang_sym = normalized.to_s.gsub("-", "_").to_sym
       info = BUILD_PARSERS[lang_sym]
 
       unless info
@@ -173,15 +181,15 @@ module TextbringerTreeSitterCLI
         return false
       end
 
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       dest_path = File.join(parser_dir, filename)
 
       if File.exist?(dest_path)
-        puts "#{language}: already installed"
+        puts "#{normalized}: already installed"
         return true
       end
 
-      puts "Building #{language} parser..."
+      puts "Building #{normalized} parser..."
       puts "  Repository: #{info[:repo]}"
 
       Dir.mktmpdir do |tmpdir|
@@ -232,14 +240,17 @@ module TextbringerTreeSitterCLI
     end
 
     def get_parser(language)
-      lang = language.to_s
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
 
-      # Faveod に含まれるか
-      if FAVEOD_PARSERS.include?(lang)
-        download_faveod_parser(lang)
+      # Faveod に含まれるか（normalized form で比較）
+      # Note: FAVEOD_PARSERS still contains "c-sharp" for backward compatibility
+      # but we normalize both sides for comparison
+      if FAVEOD_PARSERS.any? { |p| Textbringer::TreeSitter::LanguageAliases.normalize(p) == normalized }
+        download_faveod_parser(language)
       # ビルドが必要か
-      elsif BUILD_PARSERS.key?(lang.gsub("-", "_").to_sym)
-        build_parser(lang)
+      elsif BUILD_PARSERS.key?(normalized.gsub("-", "_").to_sym)
+        build_parser(language)
       else
         puts "Error: Unknown language: #{language}"
         puts ""
@@ -349,8 +360,10 @@ module TextbringerTreeSitterCLI
     end
 
     def generate_node_map(language)
-      lang = language.to_s.gsub("-", "_")
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      lang = normalized.to_s.gsub("-", "_")
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       parser_path = File.join(parser_dir, filename)
 
       unless File.exist?(parser_path)
@@ -488,10 +501,11 @@ module TextbringerTreeSitterCLI
             bash c cobol csharp groovy haml hcl html java javascript
             json pascal php python ruby rust sql yaml
           ]
-          lang_normalized = lang.to_s.gsub("-", "")
+          # Normalize for comparison
+          lang_normalized = Textbringer::TreeSitter::LanguageAliases.normalize(lang)
           if default_node_map_languages.include?(lang_normalized)
             puts ""
-            puts "Using default node_map for #{lang} (included in gem)"
+            puts "Using default node_map for #{lang_normalized} (included in gem)"
           else
             puts ""
             generate_node_map(lang)

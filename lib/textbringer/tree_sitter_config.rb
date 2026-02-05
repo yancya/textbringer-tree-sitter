@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rbconfig"
+require_relative "tree_sitter/language_aliases"
 
 module Textbringer
   module TreeSitterConfig
@@ -52,7 +53,9 @@ module Textbringer
       end
 
       def parser_path(language)
-        filename = "libtree-sitter-#{language}#{dylib_ext}"
+        # Normalize language name to handle aliases
+        normalized = TreeSitter::LanguageAliases.normalize(language)
+        filename = "libtree-sitter-#{normalized}#{dylib_ext}"
 
         # 検索パスから parser を探す
         parser_search_paths.each do |dir|
@@ -65,7 +68,9 @@ module Textbringer
       end
 
       def parser_available?(language)
-        filename = "libtree-sitter-#{language}#{dylib_ext}"
+        # Normalize language name to handle aliases
+        normalized = TreeSitter::LanguageAliases.normalize(language)
+        filename = "libtree-sitter-#{normalized}#{dylib_ext}"
 
         parser_search_paths.any? do |dir|
           File.exist?(File.join(dir, filename))

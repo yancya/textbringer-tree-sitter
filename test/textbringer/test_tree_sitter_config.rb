@@ -121,4 +121,51 @@ class TreeSitterConfigTest < Minitest::Test
       Textbringer::CONFIG.delete(:tree_sitter_parser_dir)
     end
   end
+
+  # Language alias resolution tests
+  def test_parser_path_normalizes_language_aliases
+    Dir.mktmpdir do |tmpdir|
+      platform = Textbringer::TreeSitterConfig.platform
+      parser_dir = File.join(tmpdir, platform)
+      FileUtils.mkdir_p(parser_dir)
+
+      ext = Textbringer::TreeSitterConfig.dylib_ext
+      # Create a csharp parser (normalized form)
+      parser_file = File.join(parser_dir, "libtree-sitter-csharp#{ext}")
+      FileUtils.touch(parser_file)
+
+      Textbringer::CONFIG[:tree_sitter_parser_dir] = parser_dir
+
+      # All these should resolve to the same path
+      assert_equal parser_file, Textbringer::TreeSitterConfig.parser_path(:csharp)
+      assert_equal parser_file, Textbringer::TreeSitterConfig.parser_path(:"c-sharp")
+      assert_equal parser_file, Textbringer::TreeSitterConfig.parser_path("c-sharp")
+      assert_equal parser_file, Textbringer::TreeSitterConfig.parser_path(:cs)
+
+      Textbringer::CONFIG.delete(:tree_sitter_parser_dir)
+    end
+  end
+
+  def test_parser_available_normalizes_language_aliases
+    Dir.mktmpdir do |tmpdir|
+      platform = Textbringer::TreeSitterConfig.platform
+      parser_dir = File.join(tmpdir, platform)
+      FileUtils.mkdir_p(parser_dir)
+
+      ext = Textbringer::TreeSitterConfig.dylib_ext
+      # Create a csharp parser (normalized form)
+      parser_file = File.join(parser_dir, "libtree-sitter-csharp#{ext}")
+      FileUtils.touch(parser_file)
+
+      Textbringer::CONFIG[:tree_sitter_parser_dir] = parser_dir
+
+      # All these should be recognized as available
+      assert Textbringer::TreeSitterConfig.parser_available?(:csharp)
+      assert Textbringer::TreeSitterConfig.parser_available?(:"c-sharp")
+      assert Textbringer::TreeSitterConfig.parser_available?("c-sharp")
+      assert Textbringer::TreeSitterConfig.parser_available?(:cs)
+
+      Textbringer::CONFIG.delete(:tree_sitter_parser_dir)
+    end
+  end
 end
