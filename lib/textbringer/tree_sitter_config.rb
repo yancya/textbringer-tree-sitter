@@ -1,32 +1,17 @@
 # frozen_string_literal: true
 
-require "rbconfig"
+require_relative "tree_sitter/platform"
 require_relative "tree_sitter/language_aliases"
 
 module Textbringer
   module TreeSitterConfig
     class << self
       def platform
-        os = case RbConfig::CONFIG["host_os"]
-             when /darwin/i then "darwin"
-             when /linux/i then "linux"
-             else "unknown"
-             end
-
-        arch = case RbConfig::CONFIG["host_cpu"]
-               when /arm64|aarch64/i then "arm64"
-               when /x86_64|amd64/i then "x64"
-               else "unknown"
-               end
-
-        "#{os}-#{arch}"
+        TreeSitter::Platform.platform
       end
 
       def dylib_ext
-        case RbConfig::CONFIG["host_os"]
-        when /darwin/i then ".dylib"
-        else ".so"
-        end
+        TreeSitter::Platform.dylib_ext
       end
 
       # Parser を探索するディレクトリのリスト（優先順位順）

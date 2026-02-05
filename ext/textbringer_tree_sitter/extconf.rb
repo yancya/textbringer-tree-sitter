@@ -6,42 +6,21 @@
 
 require "fileutils"
 require "open-uri"
-require "rbconfig"
 require "tmpdir"
 require "digest"
 require "json"
+require_relative "../../lib/textbringer/tree_sitter/platform"
 
 def platform
-  os = case RbConfig::CONFIG["host_os"]
-       when /darwin/i then "darwin"
-       when /linux/i then "linux"
-       else "unknown"
-       end
-
-  arch = case RbConfig::CONFIG["host_cpu"]
-         when /arm64|aarch64/i then "arm64"
-         when /x86_64|amd64/i then "x64"
-         else "unknown"
-         end
-
-  "#{os}-#{arch}"
+  Textbringer::TreeSitter::Platform.platform
 end
 
 def faveod_platform
-  case platform
-  when "darwin-arm64" then "macos-arm64"
-  when "darwin-x64" then "macos-x64"
-  when "linux-x64" then "linux-x64"
-  when "linux-arm64" then "linux-arm64"
-  else platform
-  end
+  Textbringer::TreeSitter::Platform.faveod_platform
 end
 
 def dylib_ext
-  case RbConfig::CONFIG["host_os"]
-  when /darwin/i then ".dylib"
-  else ".so"
-  end
+  Textbringer::TreeSitter::Platform.dylib_ext
 end
 
 PARSER_DIR = File.expand_path("~/.textbringer/parsers/#{platform}")
