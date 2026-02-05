@@ -55,6 +55,7 @@ MODE_LANGUAGE_MAP = {
   "SQLMode" => :sql,
   "ElixirMode" => :elixir,
   "KotlinMode" => :kotlin,
+  "ZigMode" => :zig,
 }.freeze
 
 # 言語 → ファイルパターン（自動 Mode 生成用）
@@ -77,6 +78,7 @@ LANGUAGE_FILE_PATTERNS = {
   html: /\.html?$/i,
   elixir: /\.(ex|exs)$/i,
   kotlin: /\.(kt|kts)$/i,
+  zig: /\.zig$/i,
 }.freeze
 
 # parser + node_map がある言語で、Mode がなければ自動生成
