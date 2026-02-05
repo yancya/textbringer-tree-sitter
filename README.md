@@ -158,6 +158,7 @@ These parsers require building from source and node_map generation:
 | TypeScript | `textbringer-tree-sitter get typescript` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
 | TSX | `textbringer-tree-sitter get tsx` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
 | Markdown | `textbringer-tree-sitter get markdown` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
+| Nim | `textbringer-tree-sitter get nim` | Generates node_map. **Requires ~7GB RAM to build** |
 
 To regenerate a node_map manually:
 ```bash

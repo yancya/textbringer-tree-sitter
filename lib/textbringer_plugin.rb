@@ -53,6 +53,7 @@ MODE_LANGUAGE_MAP = {
   "TypeScriptMode" => :typescript,
   "TSXMode" => :tsx,
   "SQLMode" => :sql,
+  "NimMode" => :nim,
 }.freeze
 
 # 言語 → ファイルパターン（自動 Mode 生成用）
@@ -73,6 +74,7 @@ LANGUAGE_FILE_PATTERNS = {
   bash: /\.(sh|bash)$/i,
   php: /\.php$/i,
   html: /\.html?$/i,
+  nim: /\.(nim|nims|nimble)$/i,
 }.freeze
 
 # parser + node_map がある言語で、Mode がなければ自動生成
