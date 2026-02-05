@@ -56,6 +56,7 @@ MODE_LANGUAGE_MAP = {
   "ElixirMode" => :elixir,
   "KotlinMode" => :kotlin,
   "ZigMode" => :zig,
+  "CrystalMode" => :crystal,
 }.freeze
 
 # 言語 → ファイルパターン（自動 Mode 生成用）
@@ -79,6 +80,7 @@ LANGUAGE_FILE_PATTERNS = {
   elixir: /\.(ex|exs)$/i,
   kotlin: /\.(kt|kts)$/i,
   zig: /\.zig$/i,
+  crystal: /\.cr$/i,
 }.freeze
 
 # parser + node_map がある言語で、Mode がなければ自動生成
