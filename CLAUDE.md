@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Textbringer（Ruby製ターミナルエディタ）に Tree-sitter ベースのシンタックスハイライトを提供するプラグイン gem。textbringer-rouge の代替として、より正確な構文解析を実現する（特に Terraform/HCL で Rouge の lexer に問題があるため）。
 
+## Textbringer とは
+
+* Ruby 製の Emacs 風テキストエディタ
+* コマンド名は `txtb`
+
 ## 開発コマンド
 
 ```bash

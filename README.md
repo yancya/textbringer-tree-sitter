@@ -15,20 +15,35 @@ Tree-sitter based syntax highlighting plugin for Textbringer.
 gem 'textbringer-tree-sitter'
 ```
 
-### Installing Parsers
+### Default Parsers
 
-Parsers are not bundled with the gem. Use the CLI tool to install them:
+The following parsers are **automatically installed** during `gem install`:
+
+- **ruby**
+- **python**
+- **javascript**
+- **json**
+- **bash**
+
+These are downloaded from [Faveod/tree-sitter-parsers](https://github.com/Faveod/tree-sitter-parsers) and placed in `~/.textbringer/parsers/{platform}/`.
+
+### Installing Additional Parsers
+
+Use the CLI tool to install additional parsers:
 
 ```bash
-# List available parsers
+# List available parsers and their installation status
 textbringer-tree-sitter list
 
 # Install a specific parser (downloads prebuilt or builds from source)
-textbringer-tree-sitter get ruby
+# Also generates a node_map if one doesn't exist in the gem
 textbringer-tree-sitter get hcl
 textbringer-tree-sitter get markdown
 
-# Install all prebuilt parsers at once
+# Install parser only, skip node_map generation
+textbringer-tree-sitter get markdown --no-map
+
+# Install all Faveod prebuilt parsers at once
 textbringer-tree-sitter get-all
 ```
 
@@ -43,7 +58,16 @@ textbringer-tree-sitter path
 
 ## Usage
 
-Once a parser is installed and a node_map exists for the language, syntax highlighting is automatically enabled for the corresponding Mode.
+### Automatic Highlighting
+
+Once a parser is installed and a node_map exists for the language, syntax highlighting is automatically enabled for the corresponding Mode (e.g., RubyMode, PythonMode, HCLMode).
+
+The `get` command:
+1. Downloads or builds the parser
+2. Automatically generates a node_map if one doesn't exist in the gem
+3. Places the node_map in `~/.textbringer/tree_sitter/node_maps/`
+
+### Custom Modes
 
 For custom Modes, call `use_tree_sitter`:
 
@@ -91,21 +115,54 @@ CONFIG[:tree_sitter_parser_dir] = "/path/to/your/parsers"
 
 ## Supported Languages
 
-### Prebuilt Parsers (via Faveod)
+### Ready to Use (Prebuilt + Node Map Included)
 
-bash, c, c-sharp, cobol, embedded-template, groovy, haml, html, java, javascript, json, pascal, php, python, ruby, rust
+These parsers are available from Faveod and include node_maps in the gem:
 
-### Build-required Parsers
+| Language | Auto-installed on `gem install` | Command |
+|----------|--------------------------------|---------|
+| bash | ✅ | `textbringer-tree-sitter get bash` |
+| c | | `textbringer-tree-sitter get c` |
+| c-sharp | | `textbringer-tree-sitter get c-sharp` |
+| cobol | | `textbringer-tree-sitter get cobol` |
+| embedded-template | | `textbringer-tree-sitter get embedded-template` |
+| groovy | | `textbringer-tree-sitter get groovy` |
+| haml | | `textbringer-tree-sitter get haml` |
+| html | | `textbringer-tree-sitter get html` |
+| java | | `textbringer-tree-sitter get java` |
+| javascript | ✅ | `textbringer-tree-sitter get javascript` |
+| json | ✅ | `textbringer-tree-sitter get json` |
+| pascal | | `textbringer-tree-sitter get pascal` |
+| php | | `textbringer-tree-sitter get php` |
+| python | ✅ | `textbringer-tree-sitter get python` |
+| ruby | ✅ | `textbringer-tree-sitter get ruby` |
+| rust | | `textbringer-tree-sitter get rust` |
 
-| Language | Command |
-|----------|---------|
-| HCL (Terraform) | `textbringer-tree-sitter get hcl` |
-| YAML | `textbringer-tree-sitter get yaml` |
-| Go | `textbringer-tree-sitter get go` |
-| TypeScript | `textbringer-tree-sitter get typescript` |
-| TSX | `textbringer-tree-sitter get tsx` |
-| SQL | `textbringer-tree-sitter get sql` |
-| Markdown | `textbringer-tree-sitter get markdown` |
+### Build-required (Node Map Included)
+
+These parsers require building from source but include node_maps:
+
+| Language | Command | Repository |
+|----------|---------|------------|
+| HCL (Terraform) | `textbringer-tree-sitter get hcl` | mitchellh/tree-sitter-hcl |
+| YAML | `textbringer-tree-sitter get yaml` | tree-sitter-grammars/tree-sitter-yaml |
+| SQL | `textbringer-tree-sitter get sql` | m-novikov/tree-sitter-sql |
+
+### Build-required (Node Map Not Included)
+
+These parsers require building from source and node_map generation:
+
+| Language | Command | Note |
+|----------|---------|------|
+| Go | `textbringer-tree-sitter get go` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
+| TypeScript | `textbringer-tree-sitter get typescript` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
+| TSX | `textbringer-tree-sitter get tsx` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
+| Markdown | `textbringer-tree-sitter get markdown` | Generates node_map in `~/.textbringer/tree_sitter/node_maps/` |
+
+To regenerate a node_map manually:
+```bash
+textbringer-tree-sitter generate-map <language>
+```
 
 ## License
 
