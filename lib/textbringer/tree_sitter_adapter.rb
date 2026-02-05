@@ -46,13 +46,20 @@ module Textbringer
         # textbringer 本体と同じロジック: base_pos を基準にする
         base_pos = buffer.point_min
         buffer_text = buffer.to_s
-        tree = parser.parse_string(nil, buffer_text)
+
+        # 増分パース: 以前の Tree を再利用
+        old_tree = get_cached_tree(buffer)
+        tree = parser.parse_string(old_tree, buffer_text)
         return unless tree
+
+        # 新しい Tree をキャッシュ
+        cache_tree(buffer, tree)
 
         if TreeSitterAdapter.debug?
           File.open("/tmp/tree_sitter_debug.log", "a") do |f|
             f.puts "[#{Time.now}] custom_highlight"
             f.puts "  base_pos=#{base_pos} buffer.bytesize=#{buffer_text.bytesize}"
+            f.puts "  incremental_parse=#{!old_tree.nil?}"
           end
         end
 
@@ -93,6 +100,37 @@ module Textbringer
       end
 
       private
+
+      def get_cached_tree(buffer)
+        @tree_cache ||= {}
+
+        buffer_id = buffer.object_id
+        cached = @tree_cache[buffer_id]
+
+        # キャッシュが存在し、言語が一致する場合のみ再利用
+        if cached && cached[:language] == tree_sitter_language
+          cached[:tree]
+        else
+          nil
+        end
+      end
+
+      def cache_tree(buffer, tree)
+        @tree_cache ||= {}
+
+        buffer_id = buffer.object_id
+        @tree_cache[buffer_id] = {
+          language: tree_sitter_language,
+          tree: tree
+        }
+
+        # メモリリークを防ぐため、キャッシュサイズを制限
+        # LRU 的に古いエントリを削除（簡易実装）
+        if @tree_cache.size > 10
+          # 最も古いエントリを削除
+          @tree_cache.shift
+        end
+      end
 
       def can_highlight?
         # textbringer 本体と同じチェック: @@has_colors を使う
