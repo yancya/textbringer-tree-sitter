@@ -6,6 +6,8 @@ require "open-uri"
 require "rbconfig"
 require "tmpdir"
 require "open3"
+require "digest/sha2"
+require "json"
 
 module TextbringerTreeSitterCLI
   FAVEOD_VERSION = "v4.11"
@@ -112,6 +114,51 @@ module TextbringerTreeSitterCLI
       File.expand_path("~/.textbringer/parsers/#{platform}")
     end
 
+    def checksum_file
+      File.expand_path("~/.textbringer/parsers/checksums.json")
+    end
+
+    def load_checksums
+      return {} unless File.exist?(checksum_file)
+
+      JSON.parse(File.read(checksum_file))
+    rescue JSON::ParserError, Errno::ENOENT
+      {}
+    end
+
+    def save_checksums(checksums)
+      FileUtils.mkdir_p(File.dirname(checksum_file))
+      File.write(checksum_file, JSON.pretty_generate(checksums))
+    end
+
+    def compute_sha256(file_path)
+      Digest::SHA256.file(file_path).hexdigest
+    end
+
+    def verify_checksum(file_path, url)
+      checksums = load_checksums
+      computed = compute_sha256(file_path)
+
+      if checksums.key?(url)
+        stored = checksums[url]
+        if stored != computed
+          puts "  ERROR: Checksum verification failed!"
+          puts "  Expected: #{stored}"
+          puts "  Got:      #{computed}"
+          puts "  This may indicate a corrupted download or tampering."
+          return false
+        end
+        puts "  Checksum verified: #{computed[0..15]}..."
+      else
+        # First download - store the checksum
+        checksums[url] = computed
+        save_checksums(checksums)
+        puts "  Checksum recorded: #{computed[0..15]}..."
+      end
+
+      true
+    end
+
     def parser_installed?(language)
       # c-sharp -> csharp の変換
       lang_name = language.to_s.gsub("-", "")
@@ -142,6 +189,11 @@ module TextbringerTreeSitterCLI
           end
         rescue OpenURI::HTTPError => e
           puts "  Error: Failed to download: #{e.message}"
+          return false
+        end
+
+        # Verify checksum
+        unless verify_checksum(tarball, url)
           return false
         end
 
@@ -285,6 +337,12 @@ module TextbringerTreeSitterCLI
           end
         rescue OpenURI::HTTPError => e
           puts "  Error: Failed to download: #{e.message}"
+          return
+        end
+
+        # Verify checksum
+        unless verify_checksum(tarball, url)
+          puts "Aborting installation due to checksum mismatch."
           return
         end
 

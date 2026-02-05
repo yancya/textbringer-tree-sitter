@@ -8,6 +8,8 @@ require "fileutils"
 require "open-uri"
 require "rbconfig"
 require "tmpdir"
+require "digest/sha2"
+require "json"
 
 def platform
   os = case RbConfig::CONFIG["host_os"]
@@ -43,10 +45,52 @@ def dylib_ext
 end
 
 PARSER_DIR = File.expand_path("~/.textbringer/parsers/#{platform}")
+CHECKSUM_FILE = File.expand_path("~/.textbringer/parsers/checksums.json")
 FAVEOD_VERSION = "v4.11"
 
 # 自動インストールする言語
 DEFAULT_PARSERS = %w[ruby python javascript json bash]
+
+def load_checksums
+  return {} unless File.exist?(CHECKSUM_FILE)
+
+  JSON.parse(File.read(CHECKSUM_FILE))
+rescue JSON::ParserError, Errno::ENOENT
+  {}
+end
+
+def save_checksums(checksums)
+  FileUtils.mkdir_p(File.dirname(CHECKSUM_FILE))
+  File.write(CHECKSUM_FILE, JSON.pretty_generate(checksums))
+end
+
+def compute_sha256(file_path)
+  Digest::SHA256.file(file_path).hexdigest
+end
+
+def verify_checksum(file_path, url)
+  checksums = load_checksums
+  computed = compute_sha256(file_path)
+
+  if checksums.key?(url)
+    stored = checksums[url]
+    if stored != computed
+      puts "  ERROR: Checksum verification failed!"
+      puts "  Expected: #{stored}"
+      puts "  Got:      #{computed}"
+      puts "  This may indicate a corrupted download or tampering."
+      return false
+    end
+    puts "  Checksum verified: #{computed[0..15]}..."
+  else
+    # First download - store the checksum
+    checksums[url] = computed
+    save_checksums(checksums)
+    puts "  Checksum recorded: #{computed[0..15]}..."
+  end
+
+  true
+end
 
 def download_and_extract_parsers
   url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
@@ -65,6 +109,12 @@ def download_and_extract_parsers
       end
     rescue OpenURI::HTTPError => e
       puts "  Error: Failed to download: #{e.message}"
+      return false
+    end
+
+    # Verify checksum
+    unless verify_checksum(tarball, url)
+      puts "  Aborting installation due to checksum mismatch."
       return false
     end
 
