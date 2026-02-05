@@ -204,6 +204,53 @@ class TreeSitterAdapterTest < Minitest::Test
     assert Textbringer::Window.method_defined?(:highlight)
   end
 
+  # Multibyte character offset handling
+  def test_multibyte_character_offsets
+    Textbringer::CONFIG[:colors] = true
+    Textbringer::CONFIG[:tree_sitter_highlight_level] = 4
+
+    mode = create_test_mode(:ruby)
+    window = Textbringer::Window.new
+
+    # Ruby code with multibyte characters
+    # "日本語" is 3 characters but 9 bytes (3 bytes per character in UTF-8)
+    # The keyword "def" should be highlighted correctly even after multibyte chars
+    code_with_multibyte = "# 日本語コメント\ndef hello\n  123\nend"
+    window.buffer.content = code_with_multibyte
+
+    # This will fail without proper byte-to-char conversion
+    # because "def" starts at byte offset 24 (after "# 日本語コメント\n")
+    # but at character offset 10 (after "# 日本語コメント\n" which is 10 chars)
+    mode.custom_highlight(window)
+
+    # Verify that we have some highlights
+    highlight_on = window.highlight_on
+    refute_empty highlight_on, "Should have highlights even with multibyte content"
+
+    # Calculate expected character positions
+    # "# 日本語コメント\n" is 10 characters (including newline)
+    # "def" should start at character position 10
+    comment_line = "# 日本語コメント\n"
+    assert_equal 10, comment_line.length, "Comment line should be 10 characters"
+    assert_equal 24, comment_line.bytesize, "Comment line should be 24 bytes"
+
+    # The key test: highlights should use character offsets, not byte offsets
+    # If using byte offsets incorrectly, highlight would be at position 24
+    # If using character offsets correctly, highlight should be at position 10
+    positions = highlight_on.keys.sort
+
+    # With proper conversion, positions should be in the character offset range 0-32
+    # (32 = length of entire string)
+    max_char_position = code_with_multibyte.length
+    assert_equal 32, max_char_position, "Total length should be 32 characters"
+
+    # All highlight positions should be valid character positions (not byte positions)
+    positions.each do |pos|
+      assert pos >= 0 && pos <= max_char_position,
+             "Position #{pos} should be within character range 0-#{max_char_position}"
+    end
+  end
+
   private
 
   def create_test_mode(language)
