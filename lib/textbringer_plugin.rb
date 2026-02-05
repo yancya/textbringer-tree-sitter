@@ -53,6 +53,11 @@ MODE_LANGUAGE_MAP = {
   "TypeScriptMode" => :typescript,
   "TSXMode" => :tsx,
   "SQLMode" => :sql,
+  "CobolMode" => :cobol,
+  "CSharpMode" => :csharp,
+  "GroovyMode" => :groovy,
+  "HamlMode" => :haml,
+  "PascalMode" => :pascal,
 }.freeze
 
 # 言語 → ファイルパターン（自動 Mode 生成用）
@@ -73,6 +78,11 @@ LANGUAGE_FILE_PATTERNS = {
   bash: /\.(sh|bash)$/i,
   php: /\.php$/i,
   html: /\.html?$/i,
+  cobol: /\.(cob|cbl|cpy|cobol)$/i,
+  csharp: /\.(cs|csx)$/i,
+  groovy: /\.(groovy|gvy|gy|gradle)$/i,
+  haml: /\.haml$/i,
+  pascal: /\.(pas|pp|p|inc)$/i,
 }.freeze
 
 # parser + node_map がある言語で、Mode がなければ自動生成
