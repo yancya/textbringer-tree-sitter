@@ -22,21 +22,24 @@ module TextbringerTreeSitterCLI
       repo: "mitchellh/tree-sitter-hcl",
       branch: "main",
       build_cmd: ->(src_dir, out_file) {
-        "c++ -shared -fPIC -O2 -std=c++14 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.cc -o #{out_file}"
+        ["c++", "-shared", "-fPIC", "-O2", "-std=c++14", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.cc", "-o", out_file]
       }
     },
     yaml: {
       repo: "tree-sitter-grammars/tree-sitter-yaml",
       branch: "master",
       build_cmd: ->(src_dir, out_file) {
-        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
     },
     go: {
       repo: "tree-sitter/tree-sitter-go",
       branch: "master",
       build_cmd: ->(src_dir, out_file) {
-        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+        ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "-o", out_file]
       }
     },
     typescript: {
@@ -44,7 +47,8 @@ module TextbringerTreeSitterCLI
       branch: "master",
       subdir: "typescript",
       build_cmd: ->(src_dir, out_file) {
-        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
     },
     tsx: {
@@ -52,7 +56,8 @@ module TextbringerTreeSitterCLI
       branch: "master",
       subdir: "tsx",
       build_cmd: ->(src_dir, out_file) {
-        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
     },
     sql: {
@@ -60,7 +65,8 @@ module TextbringerTreeSitterCLI
       branch: "main",
       build_cmd: ->(src_dir, out_file) {
         # scanner.cc requires C++
-        "c++ -shared -fPIC -O2 -std=c++14 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.cc -o #{out_file}"
+        ["c++", "-shared", "-fPIC", "-O2", "-std=c++14", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.cc", "-o", out_file]
       }
     },
     markdown: {
@@ -69,7 +75,8 @@ module TextbringerTreeSitterCLI
       commit: "9a23c1a",  # LANGUAGE_VERSION 14 (ruby_tree_sitter 互換)
       subdir: "tree-sitter-markdown",
       build_cmd: ->(src_dir, out_file) {
-        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+        ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
     }
   }.freeze
@@ -217,7 +224,7 @@ module TextbringerTreeSitterCLI
 
         puts "  Building..."
         FileUtils.mkdir_p(parser_dir)
-        output, status = Open3.capture2e(build_cmd)
+        output, status = Open3.capture2e(*build_cmd)
 
         unless status.success?
           puts "  Error: Build failed"
