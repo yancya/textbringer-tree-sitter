@@ -65,13 +65,18 @@ module Textbringer
 
           attrs = Face[face]&.attributes
           if attrs
+            # Tree-sitter は byte offset を返すが、Textbringer は character offset を期待する
+            # multibyte 文字対応のため byte → char 変換が必要
+            start_char = byte_offset_to_char_offset(buffer_text, start_byte)
+            end_char = byte_offset_to_char_offset(buffer_text, end_byte)
+
             # base_pos + offset でバッファ内の絶対位置を計算
-            highlight_on[base_pos + start_byte] = attrs
-            highlight_off[base_pos + end_byte] = attrs
+            highlight_on[base_pos + start_char] = attrs
+            highlight_off[base_pos + end_char] = attrs
 
             if TreeSitterAdapter.debug? && highlight_on.size <= 5
               File.open("/tmp/tree_sitter_debug.log", "a") do |f|
-                f.puts "  #{node.type} pos=#{base_pos + start_byte}-#{base_pos + end_byte} face=#{face}"
+                f.puts "  #{node.type} pos=#{base_pos + start_char}-#{base_pos + end_char} face=#{face}"
               end
             end
           end
@@ -145,6 +150,16 @@ module Textbringer
         # レベルベースの制御
         level = CONFIG[:tree_sitter_highlight_level] || 3
         HIGHLIGHT_LEVELS.take(level).flatten
+      end
+
+      # Tree-sitter の byte offset を Textbringer の character offset に変換
+      # UTF-8 multibyte 文字対応のために必要
+      def byte_offset_to_char_offset(string, byte_offset)
+        return 0 if byte_offset <= 0
+        return string.length if byte_offset >= string.bytesize
+
+        # byte_offset までの部分文字列の文字数を返す
+        string.byteslice(0, byte_offset).length
       end
     end
   end
