@@ -147,7 +147,10 @@ module TextbringerTreeSitterCLI
 
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+          puts "  Error: Failed to extract tarball"
+          return false
+        end
 
         src = Dir.glob("#{extract_dir}/**/#{filename}").first
         if src
@@ -290,7 +293,10 @@ module TextbringerTreeSitterCLI
 
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+          puts "  Error: Failed to extract tarball"
+          return
+        end
 
         FileUtils.mkdir_p(parser_dir)
 
