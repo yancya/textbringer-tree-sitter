@@ -129,6 +129,15 @@ module TextbringerTreeSitterCLI
         return true
       end
 
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"] == "1"
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To install manually:"
+        puts "  1. Download from https://github.com/Faveod/tree-sitter-parsers/releases/tag/#{FAVEOD_VERSION}"
+        puts "  2. Extract libtree-sitter-#{language}#{dylib_ext} to #{parser_dir}"
+        return false
+      end
+
       url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
 
       puts "Downloading #{language} from Faveod..."
@@ -179,6 +188,16 @@ module TextbringerTreeSitterCLI
       if File.exist?(dest_path)
         puts "#{language}: already installed"
         return true
+      end
+
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"] == "1"
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To build manually:"
+        puts "  1. Clone https://github.com/#{info[:repo]}"
+        puts "  2. Build using the instructions in the repository"
+        puts "  3. Copy the library to #{parser_dir}"
+        return false
       end
 
       puts "Building #{language} parser..."
@@ -270,6 +289,15 @@ module TextbringerTreeSitterCLI
     def get_all
       puts "Installing all Faveod prebuilt parsers..."
       puts ""
+
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"] == "1"
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To install manually:"
+        puts "  1. Download from https://github.com/Faveod/tree-sitter-parsers/releases/tag/#{FAVEOD_VERSION}"
+        puts "  2. Extract all parsers to #{parser_dir}"
+        return
+      end
 
       url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
 

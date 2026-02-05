@@ -104,13 +104,24 @@ puts "Platform: #{platform}"
 puts "Directory: #{PARSER_DIR}"
 puts ""
 
-FileUtils.mkdir_p(PARSER_DIR)
-download_and_extract_parsers
+if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"] == "1"
+  puts "TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - skipping automatic downloads"
+  puts ""
+  puts "To install parsers manually:"
+  puts "  1. Download parsers from https://github.com/Faveod/tree-sitter-parsers/releases"
+  puts "  2. Extract to #{PARSER_DIR}"
+  puts "  3. Or use: textbringer-tree-sitter get <lang>"
+  puts ""
+else
+  FileUtils.mkdir_p(PARSER_DIR)
+  download_and_extract_parsers
 
-puts ""
-puts "For additional parsers (HCL, YAML, Go, etc.):"
-puts "  $ textbringer-tree-sitter get hcl"
-puts "  $ textbringer-tree-sitter list"
+  puts ""
+  puts "For additional parsers (HCL, YAML, Go, etc.):"
+  puts "  $ textbringer-tree-sitter get hcl"
+  puts "  $ textbringer-tree-sitter list"
+end
+
 puts "=" * 60
 puts ""
 
