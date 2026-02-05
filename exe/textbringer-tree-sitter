@@ -94,6 +94,13 @@ module TextbringerTreeSitterCLI
         "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
       }
     },
+    swift: {
+      repo: "alex-pinkus/tree-sitter-swift",
+      branch: "main",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+      }
+    },
     zig: {
       repo: "tree-sitter-grammars/tree-sitter-zig",
       branch: "master",
@@ -750,11 +757,16 @@ module TextbringerTreeSitterCLI
           # デフォルト node_map がある言語はスキップ
           default_node_map_languages = %w[
 <<<<<<< HEAD
+<<<<<<< HEAD
             bash c cobol csharp elixir groovy haml hcl html java javascript
 =======
             bash c cobol crystal csharp groovy haml hcl html java javascript
 >>>>>>> b92ff87 (Add Crystal language support)
             json pascal php python ruby rust sql yaml
+=======
+            bash c cobol csharp groovy haml hcl html java javascript
+            json pascal php python ruby rust sql swift yaml
+>>>>>>> f8a227e (feat: Add Swift language support)
           ]
           lang_normalized = lang.to_s.gsub("-", "")
           if default_node_map_languages.include?(lang_normalized)
