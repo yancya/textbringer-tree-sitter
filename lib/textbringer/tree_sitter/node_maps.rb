@@ -6,6 +6,7 @@ require_relative "node_maps/bash"
 require_relative "node_maps/c"
 require_relative "node_maps/csharp"
 require_relative "node_maps/cobol"
+require_relative "node_maps/elixir"
 require_relative "node_maps/groovy"
 require_relative "node_maps/haml"
 require_relative "node_maps/html"
@@ -60,6 +61,7 @@ module Textbringer
             c: C,
             csharp: CSHARP,
             cobol: COBOL,
+            elixir: ELIXIR,
             groovy: GROOVY,
             haml: HAML,
             html: HTML,
