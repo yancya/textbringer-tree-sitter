@@ -213,8 +213,6 @@ module TextbringerTreeSitterCLI
     end
 
     def parser_installed?(language)
-      # c-sharp -> csharp の変換
-      lang_name = language.to_s.gsub("-", "")
       filename = "libtree-sitter-#{language}#{dylib_ext}"
       File.exist?(File.join(parser_dir, filename))
     end
@@ -760,4 +758,7 @@ module TextbringerTreeSitterCLI
   end
 end
 
-TextbringerTreeSitterCLI.run(ARGV)
+# Only run CLI if executed directly (not when loaded by tests)
+if __FILE__ == $PROGRAM_NAME
+  TextbringerTreeSitterCLI.run(ARGV)
+end
