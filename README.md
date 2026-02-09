@@ -78,6 +78,59 @@ class MyMode < ProgrammingMode
 end
 ```
 
+## Custom Languages
+
+You can add languages not included in the gem by creating a configuration file.
+
+### 1. Initialize config file
+
+```bash
+textbringer-tree-sitter init
+```
+
+This creates `~/.textbringer/tree_sitter/languages.yml`.
+
+### 2. Edit the configuration file
+
+```yaml
+# Simple format (minimal config)
+elixir:
+  repo: elixir-lang/tree-sitter-elixir
+
+# Detailed format (full control)
+zig:
+  repo: maxxnino/tree-sitter-zig
+  branch: master
+  commit: abc123  # Optional: pin to specific commit
+  subdir: ""      # Optional: subdirectory within repo
+  build_cmd: "cc -shared -fPIC -O2 -I{src}/src {src}/src/parser.c -o {output}"
+
+# Use a fork instead of curated version
+ruby:
+  repo: my-username/tree-sitter-ruby
+  branch: experimental
+
+# Use Faveod prebuilt parser
+groovy:
+  source: faveod
+```
+
+### 3. Install the language
+
+```bash
+textbringer-tree-sitter get elixir
+```
+
+The custom language will override any curated language with the same name.
+
+### 4. List all languages
+
+```bash
+textbringer-tree-sitter list
+```
+
+This shows both curated (built-in) and user-defined languages.
+
 ## Customization
 
 ### Highlight Level (Emacs-style)
