@@ -86,6 +86,13 @@ module TextbringerTreeSitterCLI
       build_cmd: ->(src_dir, out_file) {
         "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
       }
+    },
+    zig: {
+      repo: "tree-sitter-grammars/tree-sitter-zig",
+      branch: "master",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+      }
     }
   }.freeze
 
