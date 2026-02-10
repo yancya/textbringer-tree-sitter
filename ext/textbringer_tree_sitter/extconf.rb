@@ -8,6 +8,8 @@ require "fileutils"
 require "open-uri"
 require "rbconfig"
 require "tmpdir"
+require "digest"
+require "json"
 
 def platform
   os = case RbConfig::CONFIG["host_os"]
@@ -44,9 +46,50 @@ end
 
 PARSER_DIR = File.expand_path("~/.textbringer/parsers/#{platform}")
 FAVEOD_VERSION = "v4.11"
+CHECKSUMS_FILE = File.expand_path("~/.textbringer/parsers/checksums.json")
 
 # 自動インストールする言語
 DEFAULT_PARSERS = %w[ruby python javascript json bash]
+
+def load_checksums
+  return {} unless File.exist?(CHECKSUMS_FILE)
+
+  begin
+    JSON.parse(File.read(CHECKSUMS_FILE))
+  rescue => e
+    warn "Warning: Failed to load checksums: #{e.message}"
+    {}
+  end
+end
+
+def save_checksums(checksums)
+  FileUtils.mkdir_p(File.dirname(CHECKSUMS_FILE))
+  File.write(CHECKSUMS_FILE, JSON.pretty_generate(checksums))
+end
+
+def compute_checksum(file_path)
+  Digest::SHA256.file(file_path).hexdigest
+end
+
+def verify_checksum(file_path, url)
+  checksums = load_checksums
+  actual = compute_checksum(file_path)
+
+  if checksums.key?(url)
+    expected = checksums[url]
+    if actual != expected
+      raise "Checksum verification failed for #{url}\n" \
+            "  Expected: #{expected}\n" \
+            "  Got:      #{actual}"
+    end
+    puts "    Checksum verified: #{actual[0..15]}..."
+  else
+    # First download - record checksum
+    checksums[url] = actual
+    save_checksums(checksums)
+    puts "    Checksum recorded: #{actual[0..15]}..."
+  end
+end
 
 def download_and_extract_parsers
   url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
@@ -65,6 +108,14 @@ def download_and_extract_parsers
       end
     rescue OpenURI::HTTPError => e
       puts "  Error: Failed to download: #{e.message}"
+      return false
+    end
+
+    # Verify checksum
+    begin
+      verify_checksum(tarball, url)
+    rescue => e
+      puts "  Error: #{e.message}"
       return false
     end
 
