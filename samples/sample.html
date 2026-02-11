@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample HTML</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .highlight {
+            color: #ff0000;
+            background-color: #ffffcc;
+        }
+        #main-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- This is an HTML comment -->
+    <header id="top-header" class="site-header">
+        <h1>Sample HTML Page</h1>
+        <nav aria-label="Main navigation">
+            <ul>
+                <li><a href="#section1">Section 1</a></li>
+                <li><a href="#section2">Section 2</a></li>
+                <li><a href="#section3">Section 3</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main id="main-content" role="main">
+        <article>
+            <h2 id="section1">Section 1: Text Content</h2>
+            <p>This is a paragraph with <strong>bold</strong>, <em>italic</em>,
+               and <code>inline code</code> text.</p>
+            <p>Special entities: &amp; &lt; &gt; &quot; &copy; &#8212;</p>
+
+            <blockquote cite="https://example.com">
+                A famous quote goes here.
+            </blockquote>
+
+            <pre><code>function hello() {
+    console.log("Hello!");
+}</code></pre>
+        </article>
+
+        <article>
+            <h2 id="section2">Section 2: Forms</h2>
+            <form action="/submit" method="post" enctype="multipart/form-data">
+                <fieldset>
+                    <legend>User Information</legend>
+
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required
+                           placeholder="Enter your name" maxlength="100">
+
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+
+                    <label for="age">Age:</label>
+                    <input type="number" id="age" name="age" min="0" max="150">
+
+                    <label for="bio">Bio:</label>
+                    <textarea id="bio" name="bio" rows="4" cols="50"></textarea>
+
+                    <label for="color">Favorite Color:</label>
+                    <select id="color" name="color">
+                        <optgroup label="Primary">
+                            <option value="red">Red</option>
+                            <option value="blue" selected>Blue</option>
+                        </optgroup>
+                        <optgroup label="Secondary">
+                            <option value="green">Green</option>
+                            <option value="purple">Purple</option>
+                        </optgroup>
+                    </select>
+
+                    <input type="checkbox" id="agree" name="agree">
+                    <label for="agree">I agree to the terms</label>
+
+                    <button type="submit">Submit</button>
+                    <button type="reset">Reset</button>
+                </fieldset>
+            </form>
+        </article>
+
+        <article>
+            <h2 id="section3">Section 3: Media &amp; Tables</h2>
+
+            <figure>
+                <img src="image.jpg" alt="Sample image" width="400" height="300"
+                     loading="lazy">
+                <figcaption>A sample image caption</figcaption>
+            </figure>
+
+            <video controls width="400" poster="poster.jpg">
+                <source src="video.mp4" type="video/mp4">
+                <source src="video.webm" type="video/webm">
+                Your browser does not support video.
+            </video>
+
+            <audio controls>
+                <source src="audio.mp3" type="audio/mpeg">
+            </audio>
+
+            <table>
+                <caption>Sample Data</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Value</th>
+                        <th scope="col">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Alpha</td>
+                        <td>100</td>
+                        <td>First item</td>
+                    </tr>
+                    <tr>
+                        <td>Beta</td>
+                        <td>200</td>
+                        <td>Second item</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3">Total: 300</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </article>
+
+        <aside>
+            <h3>Related Links</h3>
+            <ul>
+                <li><a href="https://example.com" target="_blank" rel="noopener">Example</a></li>
+            </ul>
+        </aside>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sample Page. All rights reserved.</p>
+        <address>
+            Contact: <a href="mailto:test@example.com">test@example.com</a>
+        </address>
+    </footer>
+
+    <!-- Self-closing tags -->
+    <br>
+    <hr>
+    <img src="icon.png" alt="">
+
+    <script src="app.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded');
+        });
+    </script>
+</body>
+</html>
