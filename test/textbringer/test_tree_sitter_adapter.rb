@@ -341,7 +341,63 @@ class TreeSitterAdapterTest < Minitest::Test
     refute cache.key?(buffers[1].object_id), "buffer[1] が evict されていない"
   end
 
+  # --- visit_node テスト ---
+
+  def test_visit_node_yields_only_leaf_nodes
+    mode = create_test_mode(:ruby)
+
+    # mock ノードツリー:
+    #   root (child_count=2)
+    #     ├── container (child_count=1)
+    #     │   └── leaf_a (child_count=0)
+    #     └── leaf_b (child_count=0)
+    leaf_a = MockNode.new("leaf_a", 5, 10, [])
+    leaf_b = MockNode.new("leaf_b", 15, 20, [])
+    container = MockNode.new("container", 0, 12, [leaf_a])
+    root = MockNode.new("root", 0, 20, [container, leaf_b])
+
+    yielded = []
+    mode.send(:visit_node, root) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    # リーフノードのみが yield される
+    assert_equal 2, yielded.size
+    assert_equal ["leaf_a", 5, 10], yielded[0]
+    assert_equal ["leaf_b", 15, 20], yielded[1]
+
+    # コンテナノード (root, container) は yield されない
+    types = yielded.map(&:first)
+    refute_includes types, "root"
+    refute_includes types, "container"
+  end
+
+  def test_visit_node_handles_single_leaf
+    mode = create_test_mode(:ruby)
+
+    leaf = MockNode.new("keyword", 0, 3, [])
+
+    yielded = []
+    mode.send(:visit_node, leaf) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    assert_equal 1, yielded.size
+    assert_equal ["keyword", 0, 3], yielded[0]
+  end
+
   private
+
+  # visit_node テスト用の mock ノード
+  MockNode = Struct.new(:type, :start_byte, :end_byte, :children) do
+    def child_count
+      children.size
+    end
+
+    def child(index)
+      children[index]
+    end
+  end
 
   def create_test_mode(language)
     klass = Class.new(Textbringer::Mode) do
