@@ -204,6 +204,46 @@ class TreeSitterAdapterTest < Minitest::Test
     assert Textbringer::Window.method_defined?(:highlight)
   end
 
+  # byte_offset_to_char_offset 単体テスト
+  def test_byte_offset_to_char_offset_with_ascii
+    mode = create_test_mode(:ruby)
+    text = "def hello"
+
+    # ASCII のみ: byte offset == char offset
+    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, 0)
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 3)
+    assert_equal 9, mode.send(:byte_offset_to_char_offset, text, 9)
+  end
+
+  def test_byte_offset_to_char_offset_with_multibyte
+    mode = create_test_mode(:ruby)
+    # "# 日本語コメント\n" は 10 文字 / 24 bytes
+    text = "# 日本語コメント\ndef hello"
+
+    # offset 0 → char 0
+    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, 0)
+    # "# " は 2 bytes / 2 chars
+    assert_equal 2, mode.send(:byte_offset_to_char_offset, text, 2)
+    # "# 日" は 3 chars / 5 bytes
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 5)
+    # "# 日本語コメント\n" は 10 chars / 24 bytes
+    assert_equal 10, mode.send(:byte_offset_to_char_offset, text, 24)
+    # "# 日本語コメント\ndef" は 13 chars / 27 bytes
+    assert_equal 13, mode.send(:byte_offset_to_char_offset, text, 27)
+  end
+
+  def test_byte_offset_to_char_offset_edge_cases
+    mode = create_test_mode(:ruby)
+    text = "あいう"
+
+    # 負値 → 0
+    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, -1)
+    # bytesize 超え → string.length
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 100)
+    # ちょうど bytesize → string.length
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, text.bytesize)
+  end
+
   private
 
   def create_test_mode(language)
