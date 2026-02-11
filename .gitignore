@@ -65,3 +65,6 @@ parsers/**/*.so
 # Bundler
 Gemfile.lock
 Makefile
+
+# Claude Code
+.claude/
