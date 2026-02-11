@@ -299,6 +299,16 @@ module TextbringerTreeSitterCLI
     end
 
     def download_faveod_parser(language)
+      # Check for opt-out environment variable
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To install manually:"
+        puts "  1. Download from https://github.com/Faveod/tree-sitter-parsers/releases"
+        puts "  2. Extract to #{parser_dir}"
+        return false
+      end
+
       # Faveod tarball から特定の parser をインストール
       filename = "libtree-sitter-#{language}#{dylib_ext}"
       dest_path = File.join(parser_dir, filename)
@@ -366,6 +376,17 @@ module TextbringerTreeSitterCLI
     end
 
     def build_parser_from_config(language, config)
+      # Check for opt-out environment variable
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To build manually:"
+        puts "  1. Clone https://github.com/#{config.repo}"
+        puts "  2. Build using the instructions in the repository"
+        puts "  3. Copy the library to #{parser_dir}"
+        return false
+      end
+
       filename = "libtree-sitter-#{language}#{dylib_ext}"
       dest_path = File.join(parser_dir, filename)
 
@@ -530,6 +551,16 @@ module TextbringerTreeSitterCLI
     end
 
     def get_all
+      # Check for opt-out environment variable
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To install manually:"
+        puts "  1. Download from https://github.com/Faveod/tree-sitter-parsers/releases"
+        puts "  2. Extract to #{parser_dir}"
+        return
+      end
+
       puts "Installing all Faveod prebuilt parsers..."
       puts ""
 

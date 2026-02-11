@@ -92,6 +92,17 @@ def verify_checksum(file_path, url)
 end
 
 def download_and_extract_parsers
+  # Check for opt-out environment variable
+  if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+    puts "  Skipping parser download (TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set)"
+    puts ""
+    puts "  To install parsers manually:"
+    puts "    1. Download from https://github.com/Faveod/tree-sitter-parsers/releases"
+    puts "    2. Extract to #{PARSER_DIR}"
+    puts "    3. Or use: textbringer-tree-sitter get <lang>"
+    return true
+  end
+
   url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
 
   puts "  Downloading parsers from Faveod..."
