@@ -150,6 +150,14 @@ c++ -shared -fPIC -O2 -std=c++14 -Isrc src/parser.c src/scanner.cc -o libtree-si
 cp libtree-sitter-hcl.dylib ~/.textbringer/parsers/darwin-arm64/
 ```
 
+## リリース手順
+
+1. `lib/textbringer/tree_sitter/version.rb` のバージョンを更新
+2. PR を作成してマージ
+3. main でタグを打つ（`git tag vX.Y.Z && git push origin vX.Y.Z`）
+4. **gem push は GitHub Actions が自動で行う**（手動で `gem push` する必要はない）
+5. GitHub Release のリリースノートを整備する（CI が自動作成するが、内容は手動で書き換える）
+
 ## 参考実装
 
 - [textbringer-rouge](https://github.com/yancya/textbringer-rouge) - Window モンキーパッチの実装パターン
