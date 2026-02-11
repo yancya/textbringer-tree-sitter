@@ -27,6 +27,20 @@ The following parsers are **automatically installed** during `gem install`:
 
 These are downloaded from [Faveod/tree-sitter-parsers](https://github.com/Faveod/tree-sitter-parsers) and placed in `~/.textbringer/parsers/{platform}/`.
 
+### Opt-out of Automatic Downloads
+
+To skip automatic parser downloads (useful in offline or restricted environments), set the environment variable:
+
+```bash
+export TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD=1
+gem install textbringer-tree-sitter
+```
+
+When this variable is set:
+- `gem install` will skip automatic parser downloads
+- CLI commands (`get`, `get-all`) will refuse to download with an error message
+- You can still manually place parsers in `~/.textbringer/parsers/{platform}/`
+
 ### Installing Additional Parsers
 
 Use the CLI tool to install additional parsers:
@@ -77,6 +91,59 @@ class MyMode < ProgrammingMode
   use_tree_sitter :ruby
 end
 ```
+
+## Custom Languages
+
+You can add languages not included in the gem by creating a configuration file.
+
+### 1. Initialize config file
+
+```bash
+textbringer-tree-sitter init
+```
+
+This creates `~/.textbringer/tree_sitter/languages.yml`.
+
+### 2. Edit the configuration file
+
+```yaml
+# Simple format (minimal config)
+elixir:
+  repo: elixir-lang/tree-sitter-elixir
+
+# Detailed format (full control)
+zig:
+  repo: maxxnino/tree-sitter-zig
+  branch: master
+  commit: abc123  # Optional: pin to specific commit
+  subdir: ""      # Optional: subdirectory within repo
+  build_cmd: "cc -shared -fPIC -O2 -I{src}/src {src}/src/parser.c -o {output}"
+
+# Use a fork instead of curated version
+ruby:
+  repo: my-username/tree-sitter-ruby
+  branch: experimental
+
+# Use Faveod prebuilt parser
+groovy:
+  source: faveod
+```
+
+### 3. Install the language
+
+```bash
+textbringer-tree-sitter get elixir
+```
+
+The custom language will override any curated language with the same name.
+
+### 4. List all languages
+
+```bash
+textbringer-tree-sitter list
+```
+
+This shows both curated (built-in) and user-defined languages.
 
 ## Customization
 
@@ -166,8 +233,8 @@ textbringer-tree-sitter generate-map <language>
 
 ## License
 
-WTFPL - See LICENSE.txt for details.
+WTFPL - See [LICENSE](LICENSE) for details.
 
 ## Disclaimer
 
-THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+See [DISCLAIMER](DISCLAIMER) for details.

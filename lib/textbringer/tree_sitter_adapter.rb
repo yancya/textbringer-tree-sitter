@@ -46,13 +46,20 @@ module Textbringer
         # textbringer 本体と同じロジック: base_pos を基準にする
         base_pos = buffer.point_min
         buffer_text = buffer.to_s
-        tree = parser.parse_string(nil, buffer_text)
+
+        # 増分パース: 内容未変更なら以前の Tree を再利用
+        old_tree = get_cached_tree(buffer, buffer_text)
+        tree = parser.parse_string(old_tree, buffer_text)
         return unless tree
+
+        # 新しい Tree をキャッシュ
+        cache_tree(buffer, tree, buffer_text)
 
         if TreeSitterAdapter.debug?
           File.open("/tmp/tree_sitter_debug.log", "a") do |f|
             f.puts "[#{Time.now}] custom_highlight"
             f.puts "  base_pos=#{base_pos} buffer.bytesize=#{buffer_text.bytesize}"
+            f.puts "  incremental_parse=#{!old_tree.nil?}"
           end
         end
 
@@ -65,13 +72,18 @@ module Textbringer
 
           attrs = Face[face]&.attributes
           if attrs
+            # Tree-sitter は byte offset を返すが、Textbringer は character offset を期待する
+            # multibyte 文字対応のため byte → char 変換が必要
+            start_char = byte_offset_to_char_offset(buffer_text, start_byte)
+            end_char = byte_offset_to_char_offset(buffer_text, end_byte)
+
             # base_pos + offset でバッファ内の絶対位置を計算
-            highlight_on[base_pos + start_byte] = attrs
-            highlight_off[base_pos + end_byte] = attrs
+            highlight_on[base_pos + start_char] = attrs
+            highlight_off[base_pos + end_char] = attrs
 
             if TreeSitterAdapter.debug? && highlight_on.size <= 5
               File.open("/tmp/tree_sitter_debug.log", "a") do |f|
-                f.puts "  #{node.type} pos=#{base_pos + start_byte}-#{base_pos + end_byte} face=#{face}"
+                f.puts "  #{node.type} pos=#{base_pos + start_char}-#{base_pos + end_char} face=#{face}"
               end
             end
           end
@@ -89,6 +101,41 @@ module Textbringer
 
       private
 
+      def get_cached_tree(buffer, buffer_text)
+        @tree_cache ||= {}
+
+        buffer_id = buffer.object_id
+        cached = @tree_cache[buffer_id]
+
+        if cached && cached[:language] == tree_sitter_language && cached[:content_hash] == buffer_text.hash
+          # LRU リフレッシュ: delete して再挿入で末尾に移動
+          @tree_cache.delete(buffer_id)
+          @tree_cache[buffer_id] = cached
+          cached[:tree]
+        else
+          # 内容が変わっている or キャッシュなし → フルリパース
+          @tree_cache.delete(buffer_id)
+          nil
+        end
+      end
+
+      def cache_tree(buffer, tree, buffer_text)
+        @tree_cache ||= {}
+
+        buffer_id = buffer.object_id
+
+        # 既存エントリを削除して再挿入（LRU 順更新）
+        @tree_cache.delete(buffer_id)
+        @tree_cache[buffer_id] = {
+          language: tree_sitter_language,
+          tree: tree,
+          content_hash: buffer_text.hash
+        }
+
+        # LRU eviction
+        @tree_cache.shift if @tree_cache.size > 10
+      end
+
       def can_highlight?
         # textbringer 本体と同じチェック: @@has_colors を使う
         return false unless Window.class_variable_get(:@@has_colors)
@@ -103,8 +150,10 @@ module Textbringer
           return nil unless defined?(::TreeSitter)
 
           parser_path = TreeSitterConfig.parser_path(tree_sitter_language)
+          # Normalize language name for TreeSitter::Language.load
+          normalized = TreeSitter::LanguageAliases.normalize(tree_sitter_language)
           language = ::TreeSitter::Language.load(
-            tree_sitter_language.to_s,
+            normalized,
             parser_path
           )
 
@@ -145,6 +194,16 @@ module Textbringer
         # レベルベースの制御
         level = CONFIG[:tree_sitter_highlight_level] || 3
         HIGHLIGHT_LEVELS.take(level).flatten
+      end
+
+      # Tree-sitter の byte offset を Textbringer の character offset に変換
+      # UTF-8 multibyte 文字対応のために必要
+      def byte_offset_to_char_offset(string, byte_offset)
+        return 0 if byte_offset <= 0
+        return string.length if byte_offset >= string.bytesize
+
+        # byte_offset までの部分文字列の文字数を返す
+        string.byteslice(0, byte_offset).length
       end
     end
   end

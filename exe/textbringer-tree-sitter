@@ -3,9 +3,15 @@
 
 require "fileutils"
 require "open-uri"
-require "rbconfig"
 require "tmpdir"
 require "open3"
+require "yaml"
+require "digest"
+require "json"
+
+# Load LanguageAliases for normalization
+require_relative "../lib/textbringer/tree_sitter/language_aliases"
+require_relative "../lib/textbringer/tree_sitter/platform"
 
 module TextbringerTreeSitterCLI
   FAVEOD_VERSION = "v4.11"
@@ -78,41 +84,198 @@ module TextbringerTreeSitterCLI
         ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
          "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
+    },
+    crystal: {
+      repo: "crystal-lang-tools/tree-sitter-crystal",
+      branch: "main",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+      }
+    },
+    elixir: {
+      repo: "elixir-lang/tree-sitter-elixir",
+      branch: "main",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c #{src_dir}/src/scanner.c -o #{out_file}"
+      }
+    },
+    kotlin: {
+      repo: "fwcd/tree-sitter-kotlin",
+      branch: "main",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+      }
+    },
+    swift: {
+      repo: "alex-pinkus/tree-sitter-swift",
+      branch: "main",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+      }
+    },
+    zig: {
+      repo: "tree-sitter-grammars/tree-sitter-zig",
+      branch: "master",
+      build_cmd: ->(src_dir, out_file) {
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+      }
     }
   }.freeze
 
+  # Configuration class for language parsers
+  class LanguageConfig
+    attr_reader :name, :repo, :branch, :commit, :subdir, :build_cmd, :source
+
+    def initialize(name, config)
+      @name = name.to_s
+      @source = config[:source] || config["source"] || :github
+
+      if @source == :faveod
+        # Faveod prebuilt - no repo needed
+        @repo = nil
+        @branch = nil
+        @commit = nil
+        @subdir = nil
+        @build_cmd = nil
+      else
+        # GitHub source
+        @repo = config[:repo] || config["repo"]
+        unless @repo
+          raise ArgumentError, "Missing 'repo' for language: #{name}"
+        end
+
+        @branch = config[:branch] || config["branch"] || "main"
+        @commit = config[:commit] || config["commit"]
+        @subdir = config[:subdir] || config["subdir"]
+        @build_cmd = config[:build_cmd] || config["build_cmd"]
+      end
+    end
+
+    def faveod?
+      @source == :faveod
+    end
+
+    def github?
+      @source == :github
+    end
+
+    def to_hash
+      if faveod?
+        {
+          repo: repo,
+          branch: branch,
+          build_cmd: build_cmd
+        }
+      else
+        result = { repo: repo, branch: branch }
+        result[:commit] = commit if commit
+        result[:subdir] = subdir if subdir
+        result[:build_cmd] = build_cmd if build_cmd
+        result
+      end
+    end
+  end
+
   class << self
+    def checksums_file
+      File.expand_path("~/.textbringer/parsers/checksums.json")
+    end
+
+    def load_checksums
+      return {} unless File.exist?(checksums_file)
+
+      begin
+        JSON.parse(File.read(checksums_file))
+      rescue => e
+        warn "Warning: Failed to load checksums: #{e.message}"
+        {}
+      end
+    end
+
+    def save_checksums(checksums)
+      FileUtils.mkdir_p(File.dirname(checksums_file))
+      File.write(checksums_file, JSON.pretty_generate(checksums))
+    end
+
+    def compute_checksum(file_path)
+      Digest::SHA256.file(file_path).hexdigest
+    end
+
+    def verify_checksum(file_path, url)
+      checksums = load_checksums
+      actual = compute_checksum(file_path)
+
+      if checksums.key?(url)
+        expected = checksums[url]
+        if actual != expected
+          raise "Checksum verification failed for #{url}\n" \
+                "  Expected: #{expected}\n" \
+                "  Got:      #{actual}"
+        end
+        puts "  Checksum verified: #{actual[0..15]}..."
+      else
+        # First download - record checksum
+        checksums[url] = actual
+        save_checksums(checksums)
+        puts "  Checksum recorded: #{actual[0..15]}..."
+      end
+    end
+
+    def user_config_file
+      File.expand_path("~/.textbringer/tree_sitter/languages.yml")
+    end
+
+    def load_curated_languages
+      result = {}
+
+      # Faveod prebuilt parsers
+      FAVEOD_PARSERS.each do |lang|
+        result[lang] = LanguageConfig.new(lang, { source: :faveod })
+      end
+
+      # Build-required parsers
+      BUILD_PARSERS.each do |lang_sym, config|
+        lang = lang_sym.to_s.tr("_", "-")
+        result[lang] = LanguageConfig.new(lang, config)
+      end
+
+      result
+    end
+
+    def load_user_languages
+      return {} unless File.exist?(user_config_file)
+
+      begin
+        yaml = YAML.load_file(user_config_file)
+        return {} unless yaml.is_a?(Hash)
+
+        yaml.transform_keys(&:to_s).map do |name, config|
+          [name, LanguageConfig.new(name, config)]
+        end.to_h
+      rescue => e
+        warn "Warning: Failed to load user config: #{e.message}"
+        {}
+      end
+    end
+
+    def all_languages
+      curated = load_curated_languages
+      user_defined = load_user_languages
+
+      # User config overrides curated
+      curated.merge(user_defined)
+    end
+
     def platform
-      os = case RbConfig::CONFIG["host_os"]
-           when /darwin/i then "darwin"
-           when /linux/i then "linux"
-           else "unknown"
-           end
-
-      arch = case RbConfig::CONFIG["host_cpu"]
-             when /arm64|aarch64/i then "arm64"
-             when /x86_64|amd64/i then "x64"
-             else "unknown"
-             end
-
-      "#{os}-#{arch}"
+      Textbringer::TreeSitter::Platform.platform
     end
 
     def faveod_platform
-      case platform
-      when "darwin-arm64" then "macos-arm64"
-      when "darwin-x64" then "macos-x64"
-      when "linux-x64" then "linux-x64"
-      when "linux-arm64" then "linux-arm64"
-      else platform
-      end
+      Textbringer::TreeSitter::Platform.faveod_platform
     end
 
     def dylib_ext
-      case RbConfig::CONFIG["host_os"]
-      when /darwin/i then ".dylib"
-      else ".so"
-      end
+      Textbringer::TreeSitter::Platform.dylib_ext
     end
 
     def parser_dir
@@ -120,25 +283,38 @@ module TextbringerTreeSitterCLI
     end
 
     def parser_installed?(language)
-      # c-sharp -> csharp の変換
-      lang_name = language.to_s.gsub("-", "")
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       File.exist?(File.join(parser_dir, filename))
     end
 
     def download_faveod_parser(language)
+      # Check for opt-out environment variable
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To install manually:"
+        puts "  1. Download from https://github.com/Faveod/tree-sitter-parsers/releases"
+        puts "  2. Extract to #{parser_dir}"
+        return false
+      end
+
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+
       # Faveod tarball から特定の parser をインストール
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       dest_path = File.join(parser_dir, filename)
 
       if File.exist?(dest_path)
-        puts "#{language}: already installed"
+        puts "#{normalized}: already installed"
         return true
       end
 
       url = "https://github.com/Faveod/tree-sitter-parsers/releases/download/#{FAVEOD_VERSION}/tree-sitter-parsers-#{FAVEOD_VERSION.delete('v')}-#{faveod_platform}.tar.gz"
 
-      puts "Downloading #{language} from Faveod..."
+      puts "Downloading #{normalized} from Faveod..."
 
       Dir.mktmpdir do |tmpdir|
         tarball = File.join(tmpdir, "parsers.tar.gz")
@@ -152,11 +328,25 @@ module TextbringerTreeSitterCLI
           return false
         end
 
+        # Verify checksum
+        begin
+          verify_checksum(tarball, url)
+        rescue => e
+          puts "  Error: #{e.message}"
+          return false
+        end
+
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+          puts "  Error: Failed to extract tarball"
+          return false
+        end
 
+        # Faveod tarball 内のファイル名は正規化前の名前（例: c-sharp）の場合がある
+        faveod_filename = "libtree-sitter-#{language}#{dylib_ext}"
         src = Dir.glob("#{extract_dir}/**/#{filename}").first
+        src ||= Dir.glob("#{extract_dir}/**/#{faveod_filename}").first if filename != faveod_filename
         if src
           FileUtils.mkdir_p(parser_dir)
           FileUtils.cp(src, dest_path)
@@ -164,19 +354,38 @@ module TextbringerTreeSitterCLI
           puts "  -> #{dest_path}"
           true
         else
-          puts "  Error: #{language} not found in tarball"
+          puts "  Error: #{normalized} not found in tarball"
           false
         end
       end
     end
 
     def build_parser(language)
-      lang_sym = language.to_s.gsub("-", "_").to_sym
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      # Legacy method - delegates to config-based method
+      lang_sym = normalized.to_s.gsub("-", "_").to_sym
       info = BUILD_PARSERS[lang_sym]
 
       unless info
         puts "Error: Unknown build-required language: #{language}"
         puts "Available: #{BUILD_PARSERS.keys.join(', ')}"
+        return false
+      end
+
+      config = LanguageConfig.new(normalized, info)
+      build_parser_from_config(normalized, config)
+    end
+
+    def build_parser_from_config(language, config)
+      # Check for opt-out environment variable
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To build manually:"
+        puts "  1. Clone https://github.com/#{config.repo}"
+        puts "  2. Build using the instructions in the repository"
+        puts "  3. Copy the library to #{parser_dir}"
         return false
       end
 
@@ -189,38 +398,49 @@ module TextbringerTreeSitterCLI
       end
 
       puts "Building #{language} parser..."
-      puts "  Repository: #{info[:repo]}"
+      puts "  Repository: #{config.repo}"
 
       Dir.mktmpdir do |tmpdir|
         repo_dir = File.join(tmpdir, "repo")
 
         puts "  Cloning..."
-        if info[:commit]
+        if config.commit
           # 特定コミットが必要な場合は shallow clone できない
-          _, status = Open3.capture2e("git", "clone", "-b", info[:branch],
-                                      "https://github.com/#{info[:repo]}.git", repo_dir)
+          _, status = Open3.capture2e("git", "clone", "-b", config.branch,
+                                      "https://github.com/#{config.repo}.git", repo_dir)
           unless status.success?
             puts "  Error: Failed to clone repository"
             return false
           end
 
-          puts "  Checking out #{info[:commit]}..."
-          _, status = Open3.capture2e("git", "-C", repo_dir, "checkout", info[:commit])
+          puts "  Checking out #{config.commit}..."
+          _, status = Open3.capture2e("git", "-C", repo_dir, "checkout", config.commit)
           unless status.success?
-            puts "  Error: Failed to checkout commit #{info[:commit]}"
+            puts "  Error: Failed to checkout commit #{config.commit}"
             return false
           end
         else
-          _, status = Open3.capture2e("git", "clone", "--depth", "1", "-b", info[:branch],
-                                      "https://github.com/#{info[:repo]}.git", repo_dir)
+          _, status = Open3.capture2e("git", "clone", "--depth", "1", "-b", config.branch,
+                                      "https://github.com/#{config.repo}.git", repo_dir)
           unless status.success?
             puts "  Error: Failed to clone repository"
             return false
           end
         end
 
-        src_dir = info[:subdir] ? File.join(repo_dir, info[:subdir]) : repo_dir
-        build_cmd = info[:build_cmd].call(src_dir, dest_path)
+        src_dir = config.subdir ? File.join(repo_dir, config.subdir) : repo_dir
+
+        # Use custom build command or auto-detect
+        build_cmd = if config.build_cmd
+                      if config.build_cmd.is_a?(Proc)
+                        config.build_cmd.call(src_dir, dest_path)
+                      else
+                        # String template: replace {src} and {output}
+                        config.build_cmd.gsub("{src}", src_dir).gsub("{output}", dest_path)
+                      end
+                    else
+                      guess_build_cmd(src_dir, dest_path)
+                    end
 
         puts "  Building..."
         FileUtils.mkdir_p(parser_dir)
@@ -238,43 +458,116 @@ module TextbringerTreeSitterCLI
       end
     end
 
-    def get_parser(language)
-      lang = language.to_s
-
-      # Faveod に含まれるか
-      if FAVEOD_PARSERS.include?(lang)
-        download_faveod_parser(lang)
-      # ビルドが必要か
-      elsif BUILD_PARSERS.key?(lang.gsub("-", "_").to_sym)
-        build_parser(lang)
+    def guess_build_cmd(src_dir, out_file)
+      # Auto-detect based on scanner file
+      scanner = Dir.glob("#{src_dir}/src/scanner.{c,cc}").first
+      if scanner
+        ext = File.extname(scanner)
+        compiler = ext == ".cc" ? "c++" : "cc"
+        std_flag = ext == ".cc" ? "-std=c++14" : "-std=c99"
+        "#{compiler} -shared -fPIC -O2 #{std_flag} -I#{src_dir}/src #{src_dir}/src/parser.c #{scanner} -o #{out_file}"
       else
+        "cc -shared -fPIC -O2 -I#{src_dir}/src #{src_dir}/src/parser.c -o #{out_file}"
+      end
+    end
+
+    def get_parser(language)
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      languages = all_languages
+
+      # normalized form で比較して一致するエントリを探す
+      lang, config = languages.find { |k, _|
+        Textbringer::TreeSitter::LanguageAliases.normalize(k) == normalized
+      }
+
+      unless config
         puts "Error: Unknown language: #{language}"
         puts ""
-        puts "Faveod prebuilt: #{FAVEOD_PARSERS.join(', ')}"
-        puts "Build required: #{BUILD_PARSERS.keys.join(', ')}"
-        false
+        puts "Available languages:"
+        curated = load_curated_languages
+        user_defined = load_user_languages
+
+        if curated.any?
+          puts "  Curated: #{curated.keys.sort.join(', ')}"
+        end
+        if user_defined.any?
+          puts "  User-defined: #{user_defined.keys.sort.join(', ')}"
+        end
+        puts ""
+        puts "To add custom languages, run: textbringer-tree-sitter init"
+        return false
+      end
+
+      # Faveod prebuilt
+      if config.faveod?
+        download_faveod_parser(lang)
+      # GitHub build required
+      else
+        build_parser_from_config(lang, config)
       end
     end
 
     def list_parsers
-      puts "=== Faveod Prebuilt Parsers ==="
-      FAVEOD_PARSERS.each do |lang|
+      curated = load_curated_languages
+      user_defined = load_user_languages
+
+      puts "=== Curated Languages (built-in) ==="
+      puts "[S] = Supported in gem"
+      puts "[✓] = Installed"
+      puts ""
+
+      # Group curated by source
+      faveod_langs = curated.select { |_, config| config.faveod? }
+      build_langs = curated.select { |_, config| config.github? }
+
+      puts "Faveod Prebuilt:"
+      faveod_langs.keys.sort.each do |lang|
         status = parser_installed?(lang) ? "✓" : " "
-        puts "  [#{status}] #{lang}"
+        repo = "Faveod/tree-sitter-parsers"
+        puts "  [S][#{status}] #{lang.ljust(20)} #{repo}"
       end
 
       puts ""
-      puts "=== Build-required Parsers ==="
-      BUILD_PARSERS.keys.sort.each do |lang|
+      puts "Build-required:"
+      build_langs.sort.each do |lang, config|
         status = parser_installed?(lang) ? "✓" : " "
-        puts "  [#{status}] #{lang}"
+        repo = config.repo || "(unknown)"
+        puts "  [S][#{status}] #{lang.ljust(20)} #{repo}"
       end
 
+      if user_defined.any?
+        puts ""
+        puts "=== User-defined Languages (~/.textbringer/tree_sitter/languages.yml) ==="
+        puts "[U] = User-defined"
+        puts ""
+
+        user_defined.sort.each do |lang, config|
+          status = parser_installed?(lang) ? "✓" : " "
+          override = curated.key?(lang) ? " (overrides curated)" : ""
+          source = config.faveod? ? "Faveod/tree-sitter-parsers" : config.repo
+          puts "  [U][#{status}] #{lang.ljust(20)} #{source}#{override}"
+        end
+      end
+
+      puts ""
+      puts "📝 To add custom languages:"
+      puts "   textbringer-tree-sitter init"
       puts ""
       puts "Use 'textbringer-tree-sitter get <lang>' to install"
     end
 
     def get_all
+      # Check for opt-out environment variable
+      if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
+        puts "Error: TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD is set - downloads are disabled"
+        puts ""
+        puts "To install manually:"
+        puts "  1. Download from https://github.com/Faveod/tree-sitter-parsers/releases"
+        puts "  2. Extract to #{parser_dir}"
+        return
+      end
+
       puts "Installing all Faveod prebuilt parsers..."
       puts ""
 
@@ -295,9 +588,20 @@ module TextbringerTreeSitterCLI
           return
         end
 
+        # Verify checksum
+        begin
+          verify_checksum(tarball, url)
+        rescue => e
+          puts "  Error: #{e.message}"
+          return
+        end
+
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+          puts "  Error: Failed to extract tarball"
+          return
+        end
 
         FileUtils.mkdir_p(parser_dir)
 
@@ -356,8 +660,10 @@ module TextbringerTreeSitterCLI
     end
 
     def generate_node_map(language)
-      lang = language.to_s.gsub("-", "_")
-      filename = "libtree-sitter-#{language}#{dylib_ext}"
+      # Normalize language name to handle aliases
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      lang = normalized.to_s.gsub("-", "_")
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       parser_path = File.join(parser_dir, filename)
 
       unless File.exist?(parser_path)
@@ -455,6 +761,65 @@ module TextbringerTreeSitterCLI
       true
     end
 
+    def init_config
+      config_file = user_config_file
+      config_dir = File.dirname(config_file)
+
+      if File.exist?(config_file)
+        puts "Config file already exists: #{config_file}"
+        puts ""
+        puts "Edit this file to add custom languages."
+        return true
+      end
+
+      FileUtils.mkdir_p(config_dir)
+
+      template = <<~YAML
+        # Custom Tree-sitter Languages Configuration
+        # File: ~/.textbringer/tree_sitter/languages.yml
+        #
+        # Add custom languages not included in the gem.
+        # User-defined languages override curated ones.
+
+        # Example 1: Simple format (minimal config)
+        # elixir:
+        #   repo: elixir-lang/tree-sitter-elixir
+
+        # Example 2: Detailed format (full control)
+        # zig:
+        #   repo: maxxnino/tree-sitter-zig
+        #   branch: master
+        #   commit: abc123  # Optional: pin to specific commit
+        #   subdir: ""      # Optional: subdirectory within repo
+        #   build_cmd: "cc -shared -fPIC -O2 -I{src}/src {src}/src/parser.c -o {output}"
+
+        # Example 3: Override curated language (use fork)
+        # ruby:
+        #   repo: my-username/tree-sitter-ruby
+        #   branch: experimental
+
+        # Example 4: Faveod prebuilt (skip build)
+        # groovy:
+        #   source: faveod
+
+        # Add your custom languages below:
+      YAML
+
+      File.write(config_file, template)
+      puts "Created: #{config_file}"
+      puts ""
+      puts "Add custom languages by editing this file."
+      puts ""
+      puts "Example:"
+      puts "  elixir:"
+      puts "    repo: elixir-lang/tree-sitter-elixir"
+      puts "    branch: main"
+      puts ""
+      puts "Then install with:"
+      puts "  textbringer-tree-sitter get elixir"
+      true
+    end
+
     def show_help
       puts <<~HELP
         textbringer-tree-sitter - Parser manager for textbringer-tree-sitter
@@ -465,12 +830,14 @@ module TextbringerTreeSitterCLI
           textbringer-tree-sitter get <lang> --no-map Download/build parser only (skip node_map)
           textbringer-tree-sitter get-all             Install all Faveod prebuilt parsers
           textbringer-tree-sitter generate-map <lang> (Re)generate node_map for installed parser
+          textbringer-tree-sitter init                Create user config file for custom languages
           textbringer-tree-sitter path                Show parser directory
 
         Examples:
           textbringer-tree-sitter get markdown        Build parser + generate node_map
           textbringer-tree-sitter get ruby            Download Ruby parser + generate node_map
           textbringer-tree-sitter get-all             Install all prebuilt parsers (no node_maps)
+          textbringer-tree-sitter init                Create ~/.textbringer/tree_sitter/languages.yml
       HELP
     end
 
@@ -478,6 +845,8 @@ module TextbringerTreeSitterCLI
       command = args[0]
 
       case command
+      when "init"
+        init_config
       when "list"
         list_parsers
       when "get"
@@ -492,13 +861,14 @@ module TextbringerTreeSitterCLI
         if success && !skip_map
           # デフォルト node_map がある言語はスキップ
           default_node_map_languages = %w[
-            bash c cobol csharp groovy haml hcl html java javascript
-            json pascal php python ruby rust sql yaml
+            bash c cobol crystal csharp elixir groovy haml hcl html java javascript
+            json pascal php python ruby rust sql swift yaml
           ]
-          lang_normalized = lang.to_s.gsub("-", "")
+          # Normalize for comparison
+          lang_normalized = Textbringer::TreeSitter::LanguageAliases.normalize(lang)
           if default_node_map_languages.include?(lang_normalized)
             puts ""
-            puts "Using default node_map for #{lang} (included in gem)"
+            puts "Using default node_map for #{lang_normalized} (included in gem)"
           else
             puts ""
             generate_node_map(lang)
@@ -529,4 +899,7 @@ module TextbringerTreeSitterCLI
   end
 end
 
-TextbringerTreeSitterCLI.run(ARGV)
+# Only run CLI if executed directly (not when loaded by tests)
+if __FILE__ == $PROGRAM_NAME
+  TextbringerTreeSitterCLI.run(ARGV)
+end
