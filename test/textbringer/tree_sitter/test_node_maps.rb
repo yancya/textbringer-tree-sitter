@@ -383,7 +383,8 @@ class NodeMapsTest < Minitest::Test
     node_map = Textbringer::TreeSitter::NodeMaps.for(:pascal)
 
     assert_equal :comment, node_map[:comment]
-    assert_equal :string, node_map[:string]
+    assert_equal :string, node_map[:literalString]
+    assert_equal :string, node_map[:declString]
     assert_equal :keyword, node_map[:kBegin]
     assert_equal :keyword, node_map[:kEnd]
     assert_equal :keyword, node_map[:kIf]
@@ -394,8 +395,7 @@ class NodeMapsTest < Minitest::Test
     assert_equal :keyword, node_map[:kFunction]
     assert_equal :keyword, node_map[:kProcedure]
     assert_equal :keyword, node_map[:kVar]
-    assert_equal :number, node_map[:integer]
-    assert_equal :number, node_map[:real]
+    assert_equal :number, node_map[:literalNumber]
   end
 
   # PHP

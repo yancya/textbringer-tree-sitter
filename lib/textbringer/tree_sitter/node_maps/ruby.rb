@@ -66,7 +66,6 @@ module Textbringer
           BEGIN
           END
           lambda
-          as
         ],
         number: %i[integer float complex rational],
         constant: %i[
@@ -153,7 +152,6 @@ module Textbringer
           begin_block
           end_block
           empty_statement
-          expression
           exception_variable
           exceptions
         ]

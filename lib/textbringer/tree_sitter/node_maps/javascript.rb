@@ -63,7 +63,6 @@ module Textbringer
           set
           debugger
           with
-          using
           target
           meta
         ],
@@ -124,14 +123,9 @@ module Textbringer
           lexical_declaration
           variable_declaration
           variable_declarator
-          declaration
-          statement
-          expression
-          primary_expression
           parenthesized_expression
           sequence_expression
           formal_parameters
-          pattern
           assignment_pattern
           object_pattern
           array_pattern
@@ -168,8 +162,6 @@ module Textbringer
           import_attribute
           namespace_import
           named_imports
-          using_declaration
-          argument_list
           new_expression
           yield_expression
           await_expression

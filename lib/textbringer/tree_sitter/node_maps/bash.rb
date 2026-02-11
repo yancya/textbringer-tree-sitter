@@ -15,7 +15,6 @@ module Textbringer
           heredoc_end
           ansi_c_string
           translated_string
-          escape_sequence
         ],
         keyword: %i[
           if
@@ -78,7 +77,6 @@ module Textbringer
         property: %i[
           array
           program
-          statement
           redirected_statement
           for_statement
           c_style_for_statement
@@ -91,7 +89,6 @@ module Textbringer
           pipeline
           list
           negated_command
-          test_command
           declaration_command
           unset_command
           compound_statement
@@ -100,7 +97,6 @@ module Textbringer
           concatenation
           do_group
           word
-          literal
           regex
           extglob_pattern
           subscript

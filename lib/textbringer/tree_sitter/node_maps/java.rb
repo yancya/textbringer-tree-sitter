@@ -177,7 +177,6 @@ module Textbringer
           formal_parameter
           spread_parameter
           receiver_parameter
-          throws
           local_variable_declaration
           variable_declarator
           dimensions

@@ -88,7 +88,6 @@ module Textbringer
           augmented_assignment
           named_expression
           conditional_expression
-          lambda_expression
         ],
         punctuation: %i[
           chevron
@@ -99,7 +98,6 @@ module Textbringer
           true
           false
           none
-          null
         ],
         property: %i[
           attribute
@@ -112,7 +110,6 @@ module Textbringer
           type_parameter
           list_splat
           dictionary_splat
-          parameter
           parameters
           lambda_parameters
           parenthesized_expression
@@ -134,9 +131,6 @@ module Textbringer
           pattern_list
           subscript
           slice
-          call_expression
-          primary_expression
-          expression
           expression_statement
           return_statement
           delete_statement
@@ -177,10 +171,6 @@ module Textbringer
           nonlocal_statement
           exec_statement
           type_alias_statement
-          _statement
-          _simple_statement
-          _compound_statement
-          pattern
           as_pattern
           case_pattern
           keyword_pattern
