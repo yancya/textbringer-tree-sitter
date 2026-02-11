@@ -1,0 +1,182 @@
+# YAML sample file
+# Single line comment
+
+---
+# --- Scalars ---
+string_plain: Hello World
+string_double: "Hello, \"World\"!\nNew line\ttab"
+string_single: 'Hello, ''World''!'
+empty_string: ""
+
+# --- Block scalars ---
+literal_block: |
+  This preserves
+  newlines exactly
+  as written.
+
+folded_block: >
+  This folds
+  newlines into
+  spaces.
+
+literal_strip: |-
+  No trailing newline
+
+folded_keep: >+
+  Keep trailing newlines
+
+
+# --- Numbers ---
+integer: 42
+negative: -17
+hex: 0xFF
+octal: 0o77
+float: 3.14159
+negative_float: -2.71828
+scientific: 1.5e+10
+infinity: .inf
+negative_infinity: -.inf
+not_a_number: .nan
+
+# --- Booleans ---
+boolean_true: true
+boolean_false: false
+boolean_yes: yes
+boolean_no: no
+boolean_on: on
+boolean_off: off
+
+# --- Null ---
+null_value: null
+null_tilde: ~
+null_empty:
+
+# --- Sequences ---
+simple_list:
+  - apple
+  - banana
+  - cherry
+
+nested_list:
+  - - 1
+    - 2
+    - 3
+  - - a
+    - b
+    - c
+
+flow_sequence: [1, 2, 3, 4, 5]
+
+# --- Mappings ---
+simple_map:
+  name: Alice
+  age: 30
+  active: true
+
+nested_map:
+  user:
+    name: Bob
+    address:
+      street: 123 Main St
+      city: Anytown
+      zip: "12345"
+
+flow_mapping: {name: Charlie, age: 25}
+
+# --- Complex keys ---
+? [complex, key]
+: complex value
+
+? |
+  multiline
+  key
+: multiline key value
+
+# --- Anchors & Aliases ---
+defaults: &defaults
+  adapter: postgres
+  host: localhost
+  port: 5432
+
+development:
+  database: myapp_dev
+  <<: *defaults
+
+production:
+  database: myapp_prod
+  <<: *defaults
+  host: db.example.com
+
+# --- Tags ---
+tagged_string: !!str 42
+tagged_int: !!int "42"
+tagged_float: !!float "3.14"
+tagged_bool: !!bool "true"
+tagged_null: !!null ""
+tagged_binary: !!binary |
+  R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAA
+  ABAAEAAAICRAEAOw==
+
+custom_tag: !custom_type
+  field1: value1
+  field2: value2
+
+# --- Multi-document ---
+...
+---
+# Second document
+second_doc: true
+message: "This is document 2"
+
+# --- Timestamps ---
+datetime: 2024-01-15T10:30:00Z
+date: 2024-01-15
+time_with_offset: 2024-01-15T10:30:00+09:00
+
+# --- Merge key ---
+base: &base
+  color: red
+  size: large
+
+extended:
+  <<: *base
+  color: blue
+  extra: value
+
+# --- Set ---
+set_example: !!set
+  ? item1
+  ? item2
+  ? item3
+
+# --- Ordered map ---
+ordered: !!omap
+  - first: 1
+  - second: 2
+  - third: 3
+
+# --- Deeply nested ---
+deep:
+  level1:
+    level2:
+      level3:
+        level4:
+          value: "deep value"
+          list:
+            - a
+            - b
+            - c
+
+# --- Mixed types in sequence ---
+mixed:
+  - "string"
+  - 42
+  - 3.14
+  - true
+  - null
+  - [nested, list]
+  - {nested: map}
+
+# --- Directives ---
+# %YAML 1.2
+# %TAG !custom! tag:example.com,2024:

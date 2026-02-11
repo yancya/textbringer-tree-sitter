@@ -61,8 +61,11 @@ class NodeMapsTest < Minitest::Test
   def test_ruby_function_name_mapping
     node_map = Textbringer::TreeSitter::NodeMaps.for(:ruby)
 
-    assert_equal :function_name, node_map[:method]
-    assert_equal :function_name, node_map[:singleton_method]
+    # method, singleton_method, call はコンテナノードなので除外済み
+    # function_name feature は空（リーフノードのみ yield するため不要）
+    assert_nil node_map[:method]
+    assert_nil node_map[:singleton_method]
+    assert_nil node_map[:call]
   end
 
   def test_ruby_features_structure

@@ -1,0 +1,68 @@
+{
+  "string_value": "Hello, World!",
+  "escaped_string": "tab\there\nnewline\\backslash\"quote",
+  "unicode_string": "\u0048\u0065\u006C\u006C\u006F",
+  "empty_string": "",
+  "integer": 42,
+  "negative_integer": -17,
+  "float": 3.14159,
+  "negative_float": -2.71828,
+  "scientific": 1.5e10,
+  "scientific_negative": -3.14e-2,
+  "zero": 0,
+  "boolean_true": true,
+  "boolean_false": false,
+  "null_value": null,
+  "empty_object": {},
+  "empty_array": [],
+  "nested_object": {
+    "name": "Alice",
+    "age": 30,
+    "active": true,
+    "address": {
+      "street": "123 Main St",
+      "city": "Anytown",
+      "zip": "12345",
+      "coordinates": {
+        "lat": 40.7128,
+        "lng": -74.0060
+      }
+    }
+  },
+  "array_of_strings": ["apple", "banana", "cherry"],
+  "array_of_numbers": [1, 2, 3, 4, 5],
+  "array_of_booleans": [true, false, true],
+  "array_of_objects": [
+    {"id": 1, "name": "First"},
+    {"id": 2, "name": "Second"},
+    {"id": 3, "name": "Third"}
+  ],
+  "mixed_array": [
+    "string",
+    42,
+    3.14,
+    true,
+    false,
+    null,
+    {"key": "value"},
+    [1, 2, 3]
+  ],
+  "deeply_nested": {
+    "level1": {
+      "level2": {
+        "level3": {
+          "level4": {
+            "value": "deep"
+          }
+        }
+      }
+    }
+  },
+  "special_characters": {
+    "solidus": "path/to/file",
+    "backslash": "C:\\Users\\test",
+    "quotes": "She said \"hello\"",
+    "control_chars": "line1\nline2\ttab\rreturn",
+    "null_byte": "before\u0000after"
+  }
+}

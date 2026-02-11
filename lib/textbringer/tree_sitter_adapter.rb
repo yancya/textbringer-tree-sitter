@@ -166,11 +166,13 @@ module Textbringer
       end
 
       def visit_node(node, &block)
-        block.call(node, node.start_byte, node.end_byte)
-
-        node.child_count.times do |i|
-          child = node.child(i)
-          visit_node(child, &block) if child
+        if node.child_count == 0
+          block.call(node, node.start_byte, node.end_byte)
+        else
+          node.child_count.times do |i|
+            child = node.child(i)
+            visit_node(child, &block) if child
+          end
         end
       end
 

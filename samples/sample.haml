@@ -1,0 +1,154 @@
+-# This is a HAML comment
+/ This is also a HAML comment
+
+/
+  Multi-line
+  comment block
+
+!!! 5
+%html{ lang: "en" }
+  %head
+    %meta{ charset: "UTF-8" }
+    %meta{ name: "viewport", content: "width=device-width, initial-scale=1.0" }
+    %title Sample HAML Page
+    %link{ rel: "stylesheet", href: "style.css" }
+    :css
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+      }
+      .highlight {
+        color: #ff0000;
+      }
+
+  %body
+    -# --- Header ---
+    %header#top-header.site-header
+      %h1 Sample HAML Page
+      %nav{ "aria-label" => "Main navigation" }
+        %ul
+          %li
+            %a{ href: "#section1" } Section 1
+          %li
+            %a{ href: "#section2" } Section 2
+          %li
+            %a{ href: "#section3" } Section 3
+
+    -# --- Main content ---
+    %main#main-content{ role: "main" }
+
+      -# --- Text content ---
+      %article
+        %h2#section1 Section 1: Text
+        %p
+          This is a paragraph with
+          %strong bold
+          ,
+          %em italic
+          , and
+          %code inline code
+          text.
+        %p Special entities: &amp; &lt; &gt;
+
+        %blockquote{ cite: "https://example.com" }
+          A famous quote goes here.
+
+        %pre
+          %code
+            :plain
+              function hello() {
+                  console.log("Hello!");
+              }
+
+      -# --- Forms ---
+      %article
+        %h2#section2 Section 2: Forms
+        %form{ action: "/submit", method: "post" }
+          %fieldset
+            %legend User Information
+
+            %label{ for: "name" } Name:
+            %input{ type: "text", id: "name", name: "name", required: true, placeholder: "Enter your name" }
+
+            %label{ for: "email" } Email:
+            %input{ type: "email", id: "email", name: "email", required: true }
+
+            %label{ for: "bio" } Bio:
+            %textarea{ id: "bio", name: "bio", rows: 4, cols: 50 }
+
+            %label{ for: "color" } Color:
+            %select{ id: "color", name: "color" }
+              %optgroup{ label: "Primary" }
+                %option{ value: "red" } Red
+                %option{ value: "blue", selected: true } Blue
+
+            %button{ type: "submit" } Submit
+
+      -# --- Ruby code ---
+      %article
+        %h2#section3 Section 3: Dynamic Content
+
+        - items = ["apple", "banana", "cherry"]
+        %ul
+          - items.each do |item|
+            %li= item
+
+        - if items.length > 0
+          %p
+            Total items:
+            = items.length
+        - else
+          %p No items
+
+        - (1..5).each do |i|
+          .item{ class: "item-#{i}" }
+            = "Item #{i}"
+
+        -# String interpolation
+        %p= "Current time: #{Time.now}"
+
+      -# --- Classes and IDs ---
+      .container
+        .row
+          .col-6.text-left
+            %p Left column
+          .col-6.text-right
+            %p Right column
+
+      #sidebar.sidebar.collapsed
+        %h3 Sidebar
+        %ul.nav-list
+          %li.nav-item.active
+            %a.nav-link{ href: "#" } Home
+          %li.nav-item
+            %a.nav-link{ href: "#" } About
+
+    -# --- Footer ---
+    %footer
+      %p &copy; 2024 Sample HAML Page
+
+    -# --- Media ---
+    %article
+      %img{ src: "image.jpg", alt: "Sample", width: 400, height: 300, loading: "lazy" }
+      %br
+      %hr
+
+    -# --- Data attributes ---
+    .widget{ data: { id: 42, name: "widget", active: true } }
+      %p Widget content
+
+    -# --- Boolean attributes ---
+    %input{ type: "checkbox", checked: true, disabled: false }
+
+    -# --- Multiline attributes ---
+    %a{ href: "https://example.com",
+        target: "_blank",
+        rel: "noopener noreferrer",
+        class: "external-link" }
+      External Link
+
+    :javascript
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('Page loaded');
+      });
