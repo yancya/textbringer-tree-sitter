@@ -204,51 +204,44 @@ class TreeSitterAdapterTest < Minitest::Test
     assert Textbringer::Window.method_defined?(:highlight)
   end
 
-  # Multibyte character offset handling
-  def test_multibyte_character_offsets
-    Textbringer::CONFIG[:colors] = true
-    Textbringer::CONFIG[:tree_sitter_highlight_level] = 4
-
+  # byte_offset_to_char_offset 単体テスト
+  def test_byte_offset_to_char_offset_with_ascii
     mode = create_test_mode(:ruby)
-    window = Textbringer::Window.new
+    text = "def hello"
 
-    # Ruby code with multibyte characters
-    # "日本語" is 3 characters but 9 bytes (3 bytes per character in UTF-8)
-    # The keyword "def" should be highlighted correctly even after multibyte chars
-    code_with_multibyte = "# 日本語コメント\ndef hello\n  123\nend"
-    window.buffer.content = code_with_multibyte
+    # ASCII のみ: byte offset == char offset
+    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, 0)
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 3)
+    assert_equal 9, mode.send(:byte_offset_to_char_offset, text, 9)
+  end
 
-    # This will fail without proper byte-to-char conversion
-    # because "def" starts at byte offset 24 (after "# 日本語コメント\n")
-    # but at character offset 10 (after "# 日本語コメント\n" which is 10 chars)
-    mode.custom_highlight(window)
+  def test_byte_offset_to_char_offset_with_multibyte
+    mode = create_test_mode(:ruby)
+    # "# 日本語コメント\n" は 10 文字 / 24 bytes
+    text = "# 日本語コメント\ndef hello"
 
-    # Verify that we have some highlights
-    highlight_on = window.highlight_on
-    refute_empty highlight_on, "Should have highlights even with multibyte content"
+    # offset 0 → char 0
+    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, 0)
+    # "# " は 2 bytes / 2 chars
+    assert_equal 2, mode.send(:byte_offset_to_char_offset, text, 2)
+    # "# 日" は 3 chars / 5 bytes
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 5)
+    # "# 日本語コメント\n" は 10 chars / 24 bytes
+    assert_equal 10, mode.send(:byte_offset_to_char_offset, text, 24)
+    # "# 日本語コメント\ndef" は 13 chars / 27 bytes
+    assert_equal 13, mode.send(:byte_offset_to_char_offset, text, 27)
+  end
 
-    # Calculate expected character positions
-    # "# 日本語コメント\n" is 10 characters (including newline)
-    # "def" should start at character position 10
-    comment_line = "# 日本語コメント\n"
-    assert_equal 10, comment_line.length, "Comment line should be 10 characters"
-    assert_equal 24, comment_line.bytesize, "Comment line should be 24 bytes"
+  def test_byte_offset_to_char_offset_edge_cases
+    mode = create_test_mode(:ruby)
+    text = "あいう"
 
-    # The key test: highlights should use character offsets, not byte offsets
-    # If using byte offsets incorrectly, highlight would be at position 24
-    # If using character offsets correctly, highlight should be at position 10
-    positions = highlight_on.keys.sort
-
-    # With proper conversion, positions should be in the character offset range 0-32
-    # (32 = length of entire string)
-    max_char_position = code_with_multibyte.length
-    assert_equal 32, max_char_position, "Total length should be 32 characters"
-
-    # All highlight positions should be valid character positions (not byte positions)
-    positions.each do |pos|
-      assert pos >= 0 && pos <= max_char_position,
-             "Position #{pos} should be within character range 0-#{max_char_position}"
-    end
+    # 負値 → 0
+    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, -1)
+    # bytesize 超え → string.length
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 100)
+    # ちょうど bytesize → string.length
+    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, text.bytesize)
   end
 
   private
