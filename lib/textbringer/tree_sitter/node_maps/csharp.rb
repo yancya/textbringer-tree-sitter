@@ -7,9 +7,24 @@ module Textbringer
         comment: %i[comment],
         string: %i[
           string_literal
+          string_content
           verbatim_string_literal
           interpolated_string_expression
           character_literal
+          character_literal_content
+          string_literal_content
+          string_literal_encoding
+          raw_string_literal
+          raw_string_content
+          raw_string_start
+          raw_string_end
+          escape_sequence
+          interpolation
+          interpolation_brace
+          interpolation_start
+          interpolation_quote
+          interpolation_alignment_clause
+          interpolation_format_clause
         ],
         keyword: %i[
           if
@@ -80,23 +95,263 @@ module Textbringer
           null
           true
           false
+          when
+          global
+          file
+          required
+          scoped
+          managed
+          unmanaged
+          record
+          init
+          with
+          and
+          or
+          not
+          notnull
+          delegate
+          event
+          explicit
+          implicit
+          operator
+          assembly
+          module
+          field
+          property
+          method
+          param
+          type
+          typevar
+          from
+          where
+          select
+          group
+          into
+          orderby
+          join
+          let
+          ascending
+          descending
+          on
+          equals
+          by
         ],
         number: %i[
           integer_literal
           real_literal
+          float_literal
         ],
-        constant: %i[],
-        function_name: %i[],
-        variable: %i[identifier],
+        constant: %i[
+          null_literal
+          boolean_literal
+        ],
+        function_name: %i[
+          method_declaration
+          local_function_statement
+          constructor_declaration
+          destructor_declaration
+          operator_declaration
+          conversion_operator_declaration
+          invocation_expression
+        ],
+        variable: %i[
+          identifier
+          discard
+        ],
         type: %i[
           predefined_type
           type_identifier
           generic_name
+          nullable_type
+          array_type
+          pointer_type
+          function_pointer_type
+          tuple_type
+          ref_type
+          scoped_type
+          implicit_type
         ],
-        operator: %i[],
+        operator: %i[
+          binary_expression
+          assignment_expression
+          prefix_unary_expression
+          postfix_unary_expression
+          conditional_expression
+          cast_expression
+          as_expression
+          is_expression
+          throw_expression
+          switch_expression
+          with_expression
+          range_expression
+          await_expression
+          default_expression
+          sizeof_expression
+          typeof_expression
+          checked_expression
+          makeref_expression
+          reftype_expression
+          refvalue_expression
+        ],
         punctuation: %i[],
-        builtin: %i[],
-        property: %i[]
+        builtin: %i[
+          __makeref
+          __reftype
+          __refvalue
+        ],
+        property: %i[
+          compilation_unit
+          using_directive
+          extern_alias_directive
+          namespace_declaration
+          file_scoped_namespace_declaration
+          class_declaration
+          struct_declaration
+          interface_declaration
+          enum_declaration
+          delegate_declaration
+          record_declaration
+          type_parameter_list
+          type_parameter
+          type_parameter_constraints_clause
+          type_parameter_constraint
+          constructor_constraint
+          type_declaration
+          base_list
+          enum_member_declaration_list
+          enum_member_declaration
+          field_declaration
+          event_field_declaration
+          event_declaration
+          property_declaration
+          indexer_declaration
+          accessor_list
+          accessor_declaration
+          arrow_expression_clause
+          attribute_list
+          attribute
+          attribute_argument_list
+          attribute_argument
+          attribute_target_specifier
+          global_attribute
+          declaration_list
+          variable_declaration
+          variable_declarator
+          local_declaration_statement
+          parameter_list
+          parameter
+          bracketed_parameter_list
+          implicit_parameter
+          argument_list
+          argument
+          bracketed_argument_list
+          element_access_expression
+          element_binding_expression
+          member_access_expression
+          conditional_access_expression
+          invocation_expression
+          object_creation_expression
+          implicit_object_creation_expression
+          array_creation_expression
+          implicit_array_creation_expression
+          stackalloc_expression
+          implicit_stackalloc_expression
+          tuple_expression
+          tuple_element
+          initializer_expression
+          anonymous_object_creation_expression
+          anonymous_method_expression
+          lambda_expression
+          parenthesized_lambda_expression
+          anonymous_object_member_declarator
+          declaration_expression
+          declaration_pattern
+          recursive_pattern
+          property_pattern_clause
+          subpattern
+          positional_pattern_clause
+          var_pattern
+          discard_pattern
+          list_pattern
+          slice_pattern
+          constant_pattern
+          type_pattern
+          relational_pattern
+          negated_pattern
+          and_pattern
+          or_pattern
+          is_pattern_expression
+          parenthesized_pattern
+          query_expression
+          from_clause
+          join_clause
+          join_into_clause
+          let_clause
+          where_clause
+          order_by_clause
+          ordering
+          select_clause
+          group_clause
+          query_continuation
+          block
+          statement
+          expression_statement
+          if_statement
+          switch_statement
+          switch_body
+          switch_section
+          switch_expression_arm
+          switch_label
+          case_switch_label
+          default_switch_label
+          while_statement
+          do_statement
+          for_statement
+          foreach_statement
+          break_statement
+          continue_statement
+          return_statement
+          yield_statement
+          goto_statement
+          throw_statement
+          try_statement
+          catch_clause
+          catch_declaration
+          catch_filter_clause
+          finally_clause
+          lock_statement
+          using_statement
+          checked_statement
+          unsafe_statement
+          fixed_statement
+          empty_statement
+          labeled_statement
+          expression
+          primary_expression
+          lvalue_expression
+          non_lvalue_expression
+          interpolated_string_text
+          shebang_directive
+          preproc_if
+          preproc_if_in_attribute_list
+          preproc_elif
+          preproc_else
+          preproc_define
+          preproc_undef
+          preproc_region
+          preproc_endregion
+          preproc_error
+          preproc_warning
+          preproc_line
+          preproc_nullable
+          preproc_pragma
+          preproc_arg
+          modifier
+          primary_constructor_base_type
+          literal
+          with_initializer
+          annotations
+        ]
       }.freeze
 
       CSHARP = CSHARP_FEATURES.flat_map { |face, nodes|

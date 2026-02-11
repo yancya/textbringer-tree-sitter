@@ -4,11 +4,19 @@ module Textbringer
   module TreeSitter
     module NodeMaps
       C_FEATURES = {
-        comment: %i[comment],
+        comment: %i[
+          comment
+          block_comment
+          line_comment
+        ],
         string: %i[
           string_literal
+          string_content
           char_literal
+          character
           system_lib_string
+          concatenated_string
+          escape_sequence
         ],
         keyword: %i[
           if
@@ -36,24 +44,194 @@ module Textbringer
           register
           auto
           restrict
+          long
+          short
+          signed
+          unsigned
+          void
+          asm
+          __asm
+          __asm__
+          __attribute
+          __attribute__
+          __extension__
+          __restrict__
+          __volatile__
+          __inline
+          __inline__
+          __thread
+          _Alignas
+          _Alignof
+          _Atomic
+          _Generic
+          _Nonnull
+          _Noreturn
+          _unaligned
+          __alignof
+          __alignof__
+          __based
+          __cdecl
+          __clrcall
+          __declspec
+          __except
+          __fastcall
+          __finally
+          __forceinline
+          __leave
+          __stdcall
+          __thiscall
+          __try
+          __unaligned
+          __vectorcall
+          alignas
+          alignof
+          constexpr
+          noreturn
+          thread_local
+          true
+          false
+          nullptr
         ],
-        number: %i[number_literal],
-        constant: %i[],
-        function_name: %i[function_declarator],
+        number: %i[
+          number_literal
+          binary_integer_literal
+          octal_integer_literal
+          decimal_integer_literal
+          hex_integer_literal
+        ],
+        constant: %i[
+          null
+          NULL
+        ],
+        function_name: %i[
+          function_declarator
+          function_definition
+          call_expression
+        ],
         variable: %i[identifier],
         type: %i[
           primitive_type
           type_identifier
           sized_type_specifier
+          type_descriptor
+          type_definition
+          type_specifier
+          type_qualifier
+          storage_class_specifier
+          pointer_type
+          array_type
+          struct_specifier
+          union_specifier
+          enum_specifier
+          macro_type_specifier
+          attributed_declarator
         ],
-        operator: %i[],
+        operator: %i[
+          binary_expression
+          unary_expression
+          update_expression
+          cast_expression
+          pointer_expression
+          assignment_expression
+          conditional_expression
+          comma_expression
+          sizeof_expression
+          alignof_expression
+          offsetof_expression
+          subscript_expression
+        ],
         punctuation: %i[],
         builtin: %i[
-          true
-          false
-          null
+          offsetof
+          defined
         ],
-        property: %i[field_identifier]
+        property: %i[
+          field_identifier
+          field_declaration
+          field_declaration_list
+          field_designator
+          field_expression
+          initializer_list
+          initializer_pair
+          compound_literal_expression
+          declaration
+          declaration_list
+          init_declarator
+          parameter_declaration
+          parameter_list
+          variadic_parameter
+          abstract_array_declarator
+          abstract_function_declarator
+          abstract_parenthesized_declarator
+          abstract_pointer_declarator
+          array_declarator
+          parenthesized_declarator
+          pointer_declarator
+          argument_list
+          block_item
+          compound_statement
+          statement
+          expression_statement
+          labeled_statement
+          if_statement
+          switch_statement
+          switch_block_statement_group
+          case_statement
+          do_statement
+          while_statement
+          for_statement
+          break_statement
+          continue_statement
+          return_statement
+          goto_statement
+          expression
+          parenthesized_expression
+          attributed_statement
+          linkage_specification
+          preproc_call
+          preproc_def
+          preproc_function_def
+          preproc_params
+          preproc_arg
+          preproc_directive
+          preproc_if
+          preproc_ifdef
+          preproc_include
+          preproc_elif
+          preproc_elifdef
+          preproc_else
+          preproc_defined
+          ms_based_modifier
+          ms_call_modifier
+          ms_declspec_modifier
+          ms_pointer_modifier
+          ms_restrict_modifier
+          ms_signed_ptr_modifier
+          ms_unaligned_ptr_modifier
+          ms_unsigned_ptr_modifier
+          seh_try_statement
+          seh_except_clause
+          seh_finally_clause
+          seh_leave_statement
+          gnu_asm_expression
+          gnu_asm_qualifier
+          gnu_asm_clobber_list
+          gnu_asm_goto_list
+          gnu_asm_input_operand
+          gnu_asm_input_operand_list
+          gnu_asm_output_operand
+          gnu_asm_output_operand_list
+          translation_unit
+          statement_identifier
+          attribute
+          attribute_declaration
+          attribute_specifier
+          enumerator
+          enumerator_list
+          bitfield_clause
+          subscript_designator
+          subscript_range_designator
+        ]
       }.freeze
 
       C = C_FEATURES.flat_map { |face, nodes|

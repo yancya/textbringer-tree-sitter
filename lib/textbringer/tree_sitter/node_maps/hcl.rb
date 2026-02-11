@@ -34,14 +34,31 @@ module Textbringer
           binary_op
           unary_op
           operation
+          conditional
         ],
         punctuation: %i[],
         builtin: %i[],
         property: %i[
           attribute
           block
+          body
+          one_line_block
           object
           object_elem
+          collection_value
+          tuple
+          literal_value
+          expr_term
+          expression
+          for_expr
+          for_intro
+          for_cond
+          source_file
+          get_attr
+          index
+          splat
+          splat_attr
+          splat_full
         ]
       }.freeze
 

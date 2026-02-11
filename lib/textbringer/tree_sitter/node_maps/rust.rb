@@ -7,11 +7,16 @@ module Textbringer
         comment: %i[
           line_comment
           block_comment
+          doc_comment
+          inner_doc_comment_marker
+          outer_doc_comment_marker
         ],
         string: %i[
           string_literal
+          string_content
           char_literal
           raw_string_literal
+          escape_sequence
         ],
         keyword: %i[
           if
@@ -51,26 +56,204 @@ module Textbringer
           unsafe
           extern
           default
+          try
+          gen
+          raw
+          yield
+          abstract
+          become
+          box
+          do
+          final
+          macro
+          override
+          priv
+          typeof
+          unsized
+          virtual
         ],
         number: %i[
           integer_literal
           float_literal
+          boolean_literal
         ],
         constant: %i[],
-        function_name: %i[],
-        variable: %i[identifier],
+        function_name: %i[
+          function_item
+          function_signature_item
+          call_expression
+          generic_function
+          macro_invocation
+          macro_definition
+        ],
+        variable: %i[
+          identifier
+          ident
+          shorthand_field_identifier
+        ],
         type: %i[
           type_identifier
           primitive_type
           generic_type
+          generic_type_with_turbofish
+          abstract_type
+          array_type
+          tuple_type
+          unit_type
+          reference_type
+          pointer_type
+          function_type
+          never_type
+          dynamic_type
+          bounded_type
+          scoped_type_identifier
+          qualified_type
+          removed_trait_bound
+          type_cast_expression
         ],
-        operator: %i[],
+        operator: %i[
+          binary_expression
+          unary_expression
+          assignment_expression
+          compound_assignment_expr
+          range_expression
+          try_expression
+          await_expression
+          field_expression
+          reference_expression
+        ],
         punctuation: %i[],
         builtin: %i[
           true
           false
         ],
-        property: %i[field_identifier]
+        property: %i[
+          field_identifier
+          field_declaration
+          field_declaration_list
+          field_expression
+          field_initializer
+          field_initializer_list
+          field_pattern
+          base_field_initializer
+          shorthand_field_initializer
+          ordered_field_declaration_list
+          tuple_expression
+          tuple_pattern
+          tuple_struct_pattern
+          struct_expression
+          struct_item
+          struct_pattern
+          enum_item
+          enum_variant
+          enum_variant_list
+          impl_item
+          trait_item
+          trait_bounds
+          type_arguments
+          type_binding
+          type_item
+          type_parameter
+          type_parameters
+          const_item
+          const_parameter
+          const_block
+          static_item
+          mod_item
+          use_declaration
+          use_as_clause
+          use_list
+          use_wildcard
+          scoped_use_list
+          use_bounds
+          extern_crate_declaration
+          foreign_mod_item
+          visibility_modifier
+          mutable_specifier
+          extern_modifier
+          function_modifiers
+          lifetime
+          lifetime_parameter
+          where_clause
+          where_predicate
+          higher_ranked_trait_bound
+          for_lifetimes
+          bracketed_type
+          arguments
+          parameter
+          parameters
+          self_parameter
+          variadic_parameter
+          closure_expression
+          closure_parameters
+          block
+          declaration_list
+          match_expression
+          match_block
+          match_arm
+          match_pattern
+          if_expression
+          if_let_expression
+          loop_expression
+          for_expression
+          while_expression
+          while_let_expression
+          break_expression
+          continue_expression
+          return_expression
+          yield_expression
+          call_expression
+          array_expression
+          index_expression
+          parenthesized_expression
+          unit_expression
+          let_declaration
+          let_condition
+          let_chain
+          async_block
+          gen_block
+          unsafe_block
+          try_block
+          const_block
+          labeled_statement
+          empty_statement
+          expression_statement
+          attribute
+          attribute_item
+          inner_attribute_item
+          meta
+          metavariable
+          token_tree
+          token_tree_pattern
+          token_binding_pattern
+          token_repetition
+          token_repetition_pattern
+          fragment_specifier
+          macro_rule
+          pattern
+          or_pattern
+          range_pattern
+          ref_pattern
+          reference_pattern
+          remaining_field_pattern
+          mut_pattern
+          slice_pattern
+          captured_pattern
+          literal_pattern
+          negative_literal
+          discard
+          declaration
+          declaration_statement
+          source_file
+          statement
+          compound_statement
+          item
+          expression
+          literal
+          primary_expression
+          lvalue_expression
+          non_lvalue_expression
+        ]
       }.freeze
 
       RUST = RUST_FEATURES.flat_map { |face, nodes|

@@ -11,8 +11,12 @@ module Textbringer
         ],
         string: %i[
           string_literal
+          string_fragment
+          multiline_string_fragment
           character_literal
-          text_block
+          string_interpolation
+          template_expression
+          escape_sequence
         ],
         keyword: %i[
           if
@@ -61,6 +65,25 @@ module Textbringer
           non
           var
           yield
+          byte
+          short
+          int
+          long
+          char
+          float
+          double
+          boolean
+          when
+          module
+          open
+          requires
+          exports
+          opens
+          to
+          uses
+          provides
+          with
+          transitive
         ],
         number: %i[
           decimal_integer_literal
@@ -69,25 +92,157 @@ module Textbringer
           binary_integer_literal
           decimal_floating_point_literal
           hex_floating_point_literal
+          _literal
         ],
-        constant: %i[],
-        function_name: %i[],
-        variable: %i[identifier],
+        constant: %i[
+          null_literal
+          boolean_literal
+        ],
+        function_name: %i[
+          method_declaration
+          method_invocation
+          constructor_declaration
+          compact_constructor_declaration
+        ],
+        variable: %i[
+          identifier
+          scoped_identifier
+        ],
         type: %i[
           type_identifier
           void_type
           integral_type
           floating_point_type
           boolean_type
+          scoped_type_identifier
+          generic_type
+          array_type
+          wildcard
+          annotated_type
+          _type
+          _unannotated_type
+          _simple_type
         ],
-        operator: %i[],
-        punctuation: %i[],
+        operator: %i[
+          binary_expression
+          unary_expression
+          update_expression
+          cast_expression
+          instanceof_expression
+          ternary_expression
+          assignment_expression
+          lambda_expression
+          method_reference
+        ],
+        punctuation: %i[
+          asterisk
+        ],
         builtin: %i[
           true
           false
           null
         ],
-        property: %i[]
+        property: %i[
+          program
+          package_declaration
+          import_declaration
+          asterisk
+          class_declaration
+          class_body
+          modifiers
+          type_parameters
+          type_parameter
+          type_bound
+          superclass
+          super_interfaces
+          interface_body
+          interface_declaration
+          annotation_type_declaration
+          annotation_type_body
+          annotation_type_element_declaration
+          enum_declaration
+          enum_body
+          enum_constant
+          enum_body_declarations
+          record_declaration
+          field_declaration
+          record_declaration
+          annotation
+          marker_annotation
+          annotation_argument_list
+          element_value_pair
+          element_value_array_initializer
+          method_declaration
+          formal_parameters
+          formal_parameter
+          spread_parameter
+          receiver_parameter
+          throws
+          local_variable_declaration
+          variable_declarator
+          dimensions
+          block
+          expression_statement
+          labeled_statement
+          assert_statement
+          if_statement
+          while_statement
+          for_statement
+          enhanced_for_statement
+          break_statement
+          continue_statement
+          return_statement
+          yield_statement
+          synchronized_statement
+          throw_statement
+          try_statement
+          catch_clause
+          catch_formal_parameter
+          catch_type
+          finally_clause
+          try_with_resources_statement
+          resource_specification
+          resource
+          switch_statement
+          switch_block
+          switch_block_statement_group
+          switch_rule
+          switch_label
+          switch_expression
+          statement
+          expression
+          primary_expression
+          array_creation_expression
+          dimensions_expr
+          parenthesized_expression
+          class_literal
+          object_creation_expression
+          field_access
+          array_access
+          argument_list
+          type_arguments
+          wildcard_bounds
+          inferred_parameters
+          constant_declaration
+          _declaration
+          module_declaration
+          module_body
+          module_directive
+          requires_module_directive
+          requires_modifier
+          exports_module_directive
+          opens_module_directive
+          uses_module_directive
+          provides_module_directive
+          type_list
+          type_pattern
+          guard
+          pattern
+          record_pattern
+          record_pattern_body
+          record_pattern_component
+          underscore_pattern
+        ]
       }.freeze
 
       JAVA = JAVA_FEATURES.flat_map { |face, nodes|

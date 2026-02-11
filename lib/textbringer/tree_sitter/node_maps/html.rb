@@ -8,10 +8,12 @@ module Textbringer
         string: %i[
           attribute_value
           quoted_attribute_value
+          text
+          raw_text
         ],
         keyword: %i[doctype],
         number: %i[],
-        constant: %i[],
+        constant: %i[entity],
         function_name: %i[],
         variable: %i[],
         type: %i[],
@@ -19,7 +21,16 @@ module Textbringer
         punctuation: %i[],
         builtin: %i[],
         property: %i[
+          document
+          element
+          script_element
+          style_element
+          start_tag
+          end_tag
+          self_closing_tag
+          erroneous_end_tag
           tag_name
+          attribute
           attribute_name
           erroneous_end_tag_name
         ]
