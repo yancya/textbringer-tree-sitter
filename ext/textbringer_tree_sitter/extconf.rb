@@ -9,6 +9,8 @@ require "open-uri"
 require "tmpdir"
 require "digest"
 require "json"
+require "rubygems/package"
+require "zlib"
 require_relative "../../lib/textbringer/tree_sitter/platform"
 
 def platform
@@ -70,6 +72,29 @@ def verify_checksum(file_path, url)
   end
 end
 
+def extract_tarball(tarball_path, extract_dir)
+  expanded_extract_dir = File.expand_path(extract_dir)
+  File.open(tarball_path, "rb") do |file|
+    Zlib::GzipReader.wrap(file) do |gz|
+      Gem::Package::TarReader.new(gz) do |tar|
+        tar.each do |entry|
+          next unless entry.file?
+          dest = File.expand_path(File.join(extract_dir, entry.full_name))
+          unless dest.start_with?("#{expanded_extract_dir}/")
+            raise "Path traversal detected: #{entry.full_name}"
+          end
+          FileUtils.mkdir_p(File.dirname(dest))
+          File.open(dest, "wb") { |f| f.write(entry.read) }
+        end
+      end
+    end
+  end
+  true
+rescue Zlib::GzipFile::Error, Gem::Package::TarInvalidError => e
+  puts "  Error: Failed to extract tarball: #{e.message}"
+  false
+end
+
 def download_and_extract_parsers
   # Check for opt-out environment variable
   if ENV["TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD"]
@@ -113,8 +138,7 @@ def download_and_extract_parsers
     extract_dir = File.join(tmpdir, "extracted")
     FileUtils.mkdir_p(extract_dir)
 
-    unless system("tar", "-xzf", tarball, "-C", extract_dir)
-      puts "  Error: Failed to extract tarball"
+    unless extract_tarball(tarball, extract_dir)
       return false
     end
 
