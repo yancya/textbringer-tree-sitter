@@ -331,7 +331,10 @@ module TextbringerTreeSitterCLI
 
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+          puts "  Error: Failed to extract tarball"
+          return false
+        end
 
         # Faveod tarball 内のファイル名は正規化前の名前（例: c-sharp）の場合がある
         faveod_filename = "libtree-sitter-#{language}#{dylib_ext}"
@@ -588,7 +591,10 @@ module TextbringerTreeSitterCLI
 
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+          puts "  Error: Failed to extract tarball"
+          return
+        end
 
         FileUtils.mkdir_p(parser_dir)
 

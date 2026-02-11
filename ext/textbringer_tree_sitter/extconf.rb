@@ -113,7 +113,10 @@ def download_and_extract_parsers
     extract_dir = File.join(tmpdir, "extracted")
     FileUtils.mkdir_p(extract_dir)
 
-    system("tar", "-xzf", tarball, "-C", extract_dir)
+    unless system("tar", "-xzf", tarball, "-C", extract_dir)
+      puts "  Error: Failed to extract tarball"
+      return false
+    end
 
     # parser ファイルを探してコピー
     Dir.glob("#{extract_dir}/**/libtree-sitter-*#{dylib_ext}").each do |src|
