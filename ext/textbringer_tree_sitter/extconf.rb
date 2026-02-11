@@ -73,12 +73,16 @@ def verify_checksum(file_path, url)
 end
 
 def extract_tarball(tarball_path, extract_dir)
+  expanded_extract_dir = File.expand_path(extract_dir)
   File.open(tarball_path, "rb") do |file|
     Zlib::GzipReader.wrap(file) do |gz|
       Gem::Package::TarReader.new(gz) do |tar|
         tar.each do |entry|
           next unless entry.file?
-          dest = File.join(extract_dir, entry.full_name)
+          dest = File.expand_path(File.join(extract_dir, entry.full_name))
+          unless dest.start_with?("#{expanded_extract_dir}/")
+            raise "Path traversal detected: #{entry.full_name}"
+          end
           FileUtils.mkdir_p(File.dirname(dest))
           File.open(dest, "wb") { |f| f.write(entry.read) }
         end
