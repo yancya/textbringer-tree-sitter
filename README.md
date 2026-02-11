@@ -27,6 +27,20 @@ The following parsers are **automatically installed** during `gem install`:
 
 These are downloaded from [Faveod/tree-sitter-parsers](https://github.com/Faveod/tree-sitter-parsers) and placed in `~/.textbringer/parsers/{platform}/`.
 
+### Opt-out of Automatic Downloads
+
+To skip automatic parser downloads (useful in offline or restricted environments), set the environment variable:
+
+```bash
+export TEXTBRINGER_TREE_SITTER_NO_DOWNLOAD=1
+gem install textbringer-tree-sitter
+```
+
+When this variable is set:
+- `gem install` will skip automatic parser downloads
+- CLI commands (`get`, `get-all`) will refuse to download with an error message
+- You can still manually place parsers in `~/.textbringer/parsers/{platform}/`
+
 ### Installing Additional Parsers
 
 Use the CLI tool to install additional parsers:
