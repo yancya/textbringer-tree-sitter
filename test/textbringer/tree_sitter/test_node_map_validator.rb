@@ -58,9 +58,7 @@ end
 
 class NodeMapValidatorTest < Minitest::Test
   def parser_path(language)
-    platform = Textbringer::TreeSitterConfig.platform
-    ext = Textbringer::TreeSitterConfig.dylib_ext
-    File.expand_path("../../../../parsers/#{platform}/libtree-sitter-#{language}#{ext}", __FILE__)
+    Textbringer::TreeSitterConfig.parser_path(language)
   end
 
   def test_ruby_node_map_validity
