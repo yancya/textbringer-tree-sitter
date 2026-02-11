@@ -8,6 +8,8 @@ require "open3"
 require "yaml"
 require "digest"
 require "json"
+require "rubygems/package"
+require "zlib"
 
 # Load LanguageAliases for normalization
 require_relative "../lib/textbringer/tree_sitter/language_aliases"
@@ -331,7 +333,9 @@ module TextbringerTreeSitterCLI
 
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless extract_tarball(tarball, extract_dir)
+          return false
+        end
 
         # Faveod tarball 内のファイル名は正規化前の名前（例: c-sharp）の場合がある
         faveod_filename = "libtree-sitter-#{language}#{dylib_ext}"
@@ -461,6 +465,25 @@ module TextbringerTreeSitterCLI
       end
     end
 
+    def extract_tarball(tarball_path, extract_dir)
+      File.open(tarball_path, "rb") do |file|
+        Zlib::GzipReader.wrap(file) do |gz|
+          Gem::Package::TarReader.new(gz) do |tar|
+            tar.each do |entry|
+              next unless entry.file?
+              dest = File.join(extract_dir, entry.full_name)
+              FileUtils.mkdir_p(File.dirname(dest))
+              File.open(dest, "wb") { |f| f.write(entry.read) }
+            end
+          end
+        end
+      end
+      true
+    rescue Zlib::GzipFile::Error, Gem::Package::TarInvalidError => e
+      puts "  Error: Failed to extract tarball: #{e.message}"
+      false
+    end
+
     def get_parser(language)
       # Normalize language name to handle aliases
       normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
@@ -588,7 +611,9 @@ module TextbringerTreeSitterCLI
 
         extract_dir = File.join(tmpdir, "extracted")
         FileUtils.mkdir_p(extract_dir)
-        system("tar", "-xzf", tarball, "-C", extract_dir, out: File::NULL, err: File::NULL)
+        unless extract_tarball(tarball, extract_dir)
+          return
+        end
 
         FileUtils.mkdir_p(parser_dir)
 
