@@ -46,13 +46,20 @@ module Textbringer
         # textbringer 本体と同じロジック: base_pos を基準にする
         base_pos = buffer.point_min
         buffer_text = buffer.to_s
-        tree = parser.parse_string(nil, buffer_text)
+
+        # 増分パース: 内容未変更なら以前の Tree を再利用
+        old_tree = get_cached_tree(buffer, buffer_text)
+        tree = parser.parse_string(old_tree, buffer_text)
         return unless tree
+
+        # 新しい Tree をキャッシュ
+        cache_tree(buffer, tree, buffer_text)
 
         if TreeSitterAdapter.debug?
           File.open("/tmp/tree_sitter_debug.log", "a") do |f|
             f.puts "[#{Time.now}] custom_highlight"
             f.puts "  base_pos=#{base_pos} buffer.bytesize=#{buffer_text.bytesize}"
+            f.puts "  incremental_parse=#{!old_tree.nil?}"
           end
         end
 
@@ -93,6 +100,41 @@ module Textbringer
       end
 
       private
+
+      def get_cached_tree(buffer, buffer_text)
+        @tree_cache ||= {}
+
+        buffer_id = buffer.object_id
+        cached = @tree_cache[buffer_id]
+
+        if cached && cached[:language] == tree_sitter_language && cached[:content_hash] == buffer_text.hash
+          # LRU リフレッシュ: delete して再挿入で末尾に移動
+          @tree_cache.delete(buffer_id)
+          @tree_cache[buffer_id] = cached
+          cached[:tree]
+        else
+          # 内容が変わっている or キャッシュなし → フルリパース
+          @tree_cache.delete(buffer_id)
+          nil
+        end
+      end
+
+      def cache_tree(buffer, tree, buffer_text)
+        @tree_cache ||= {}
+
+        buffer_id = buffer.object_id
+
+        # 既存エントリを削除して再挿入（LRU 順更新）
+        @tree_cache.delete(buffer_id)
+        @tree_cache[buffer_id] = {
+          language: tree_sitter_language,
+          tree: tree,
+          content_hash: buffer_text.hash
+        }
+
+        # LRU eviction
+        @tree_cache.shift if @tree_cache.size > 10
+      end
 
       def can_highlight?
         # textbringer 本体と同じチェック: @@has_colors を使う
