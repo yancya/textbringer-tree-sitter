@@ -157,6 +157,7 @@ cp libtree-sitter-hcl.dylib ~/.textbringer/parsers/darwin-arm64/
 3. main でタグを打つ（`git tag vX.Y.Z && git push origin vX.Y.Z`）
 4. **gem push は GitHub Actions が自動で行う**（手動で `gem push` する必要はない）
 5. GitHub Release のリリースノートを整備する（CI が自動作成するが、内容は手動で書き換える）
+   - **リリースノートは英語で統一すること**
 
 ## 参考実装
 
