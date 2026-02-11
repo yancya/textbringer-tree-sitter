@@ -66,7 +66,8 @@ module Textbringer
         highlight_on = {}
         highlight_off = {}
 
-        visit_node(tree.root_node) do |node, start_byte, end_byte|
+        node_map = TreeSitter::NodeMaps.for(tree_sitter_language)
+        visit_node(tree.root_node, node_map) do |node, start_byte, end_byte|
           face = node_type_to_face(node.type.to_sym)
           next unless face
 
@@ -165,13 +166,16 @@ module Textbringer
         end
       end
 
-      def visit_node(node, &block)
+      def visit_node(node, node_map = nil, &block)
         if node.child_count == 0
           block.call(node, node.start_byte, node.end_byte)
         else
+          if node_map&.key?(node.type.to_sym)
+            block.call(node, node.start_byte, node.end_byte)
+          end
           node.child_count.times do |i|
             child = node.child(i)
-            visit_node(child, &block) if child
+            visit_node(child, node_map, &block) if child
           end
         end
       end

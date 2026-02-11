@@ -386,6 +386,49 @@ class TreeSitterAdapterTest < Minitest::Test
     assert_equal ["keyword", 0, 3], yielded[0]
   end
 
+  def test_visit_node_yields_mapped_non_leaf_nodes
+    mode = create_test_mode(:ruby)
+
+    # node_map で container がマッピングされている想定
+    node_map = { container: :function_name }
+
+    leaf_a = MockNode.new("leaf_a", 5, 10, [])
+    leaf_b = MockNode.new("leaf_b", 15, 20, [])
+    container = MockNode.new("container", 0, 12, [leaf_a])
+    root = MockNode.new("root", 0, 20, [container, leaf_b])
+
+    yielded = []
+    mode.send(:visit_node, root, node_map) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    types = yielded.map(&:first)
+    # container はマッピングされているので yield される
+    assert_includes types, "container"
+    # リーフノードも引き続き yield される
+    assert_includes types, "leaf_a"
+    assert_includes types, "leaf_b"
+    # root はマッピングされていないので yield されない
+    refute_includes types, "root"
+  end
+
+  def test_visit_node_without_node_map_yields_only_leaves
+    mode = create_test_mode(:ruby)
+
+    leaf_a = MockNode.new("leaf_a", 5, 10, [])
+    container = MockNode.new("container", 0, 12, [leaf_a])
+
+    yielded = []
+    mode.send(:visit_node, container) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    # node_map なしの場合はリーフのみ（後方互換）
+    types = yielded.map(&:first)
+    assert_includes types, "leaf_a"
+    refute_includes types, "container"
+  end
+
   private
 
   # visit_node テスト用の mock ノード
