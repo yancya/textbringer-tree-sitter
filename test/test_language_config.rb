@@ -169,6 +169,44 @@ class TestLanguageConfig < Minitest::Test
     assert_match(/elixir:/, content)
   end
 
+  def test_build_cmd_lambdas_return_array
+    TextbringerTreeSitterCLI::BUILD_PARSERS.each do |lang, info|
+      result = info[:build_cmd].call("/dummy/src", "/dummy/out.dylib")
+      assert_kind_of Array, result,
+        "#{lang} の build_cmd は Array を返すべき（String だと Open3.capture2e がシェル経由で実行される）"
+      result.each_with_index do |elem, i|
+        assert_kind_of String, elem,
+          "#{lang} の build_cmd[#{i}] は String であるべき"
+      end
+    end
+  end
+
+  def test_guess_build_cmd_returns_array
+    Dir.mktmpdir do |tmpdir|
+      src_dir = File.join(tmpdir, "src")
+      FileUtils.mkdir_p(src_dir)
+
+      # scanner なしのケース
+      File.write(File.join(src_dir, "parser.c"), "")
+      result = TextbringerTreeSitterCLI.guess_build_cmd(tmpdir, "/dummy/out.dylib")
+      assert_kind_of Array, result, "guess_build_cmd（scanner なし）は Array を返すべき"
+
+      # .c scanner ありのケース
+      File.write(File.join(src_dir, "scanner.c"), "")
+      result = TextbringerTreeSitterCLI.guess_build_cmd(tmpdir, "/dummy/out.dylib")
+      assert_kind_of Array, result, "guess_build_cmd（.c scanner）は Array を返すべき"
+      assert_includes result, "cc"
+
+      # .cc scanner ありのケース
+      FileUtils.rm(File.join(src_dir, "scanner.c"))
+      File.write(File.join(src_dir, "scanner.cc"), "")
+      result = TextbringerTreeSitterCLI.guess_build_cmd(tmpdir, "/dummy/out.dylib")
+      assert_kind_of Array, result, "guess_build_cmd（.cc scanner）は Array を返すべき"
+      assert_includes result, "c++"
+      assert_includes result, "-std=c++14"
+    end
+  end
+
   def test_init_config_file_exists
     config_file = TextbringerTreeSitterCLI.user_config_file
     FileUtils.mkdir_p(File.dirname(config_file))
