@@ -501,4 +501,87 @@ class NodeMapsTest < Minitest::Test
     assert_equal :keyword, node_map[:anchor]
     assert_equal :keyword, node_map[:alias]
   end
+
+  # SQL
+  def test_sql_basic_mappings
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:sql)
+
+    # キーワード
+    assert_equal :keyword, node_map[:SELECT]
+    assert_equal :keyword, node_map[:FROM]
+    assert_equal :keyword, node_map[:WHERE]
+    assert_equal :keyword, node_map[:JOIN]
+    assert_equal :keyword, node_map[:CREATE]
+    assert_equal :keyword, node_map[:TABLE]
+    assert_equal :keyword, node_map[:INSERT]
+    assert_equal :keyword, node_map[:UPDATE]
+    assert_equal :keyword, node_map[:DELETE]
+    assert_equal :keyword, node_map[:BEGIN]
+    assert_equal :keyword, node_map[:COMMIT]
+    assert_equal :keyword, node_map[:ROLLBACK]
+    assert_equal :keyword, node_map[:like]
+
+    # コメント
+    assert_equal :comment, node_map[:comment]
+    assert_equal :comment, node_map[:line_comment]
+    assert_equal :comment, node_map[:block_comment]
+
+    # 文字列（string はコンテナ、content がリーフ）
+    assert_equal :string, node_map[:content]
+    assert_nil node_map[:string]
+
+    # 数値
+    assert_equal :number, node_map[:number]
+
+    # identifier はリーフノード
+    assert_equal :variable, node_map[:identifier]
+  end
+
+  def test_sql_container_nodes_not_mapped
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:sql)
+
+    # コンテナノードはマッピングされない
+    assert_nil node_map[:function_call]
+    assert_nil node_map[:binary_expression]
+    assert_nil node_map[:boolean_expression]
+    assert_nil node_map[:type_cast]
+    assert_nil node_map[:constrained_type]
+    assert_nil node_map[:array_type]
+  end
+
+  def test_sql_removed_nonexistent_keywords
+    node_map = Textbringer::TreeSitter::NodeMaps.for(:sql)
+
+    # 存在しない複合キーワードが削除されている
+    assert_nil node_map[:FOREIGN_KEY]
+    assert_nil node_map[:IF_EXISTS]
+    assert_nil node_map[:IF_NOT_EXISTS]
+    assert_nil node_map[:SET_NULL]
+    assert_nil node_map[:SET_DEFAULT]
+    assert_nil node_map[:ILIKE]
+  end
+
+  def test_sql_features_structure
+    features = Textbringer::TreeSitter::NodeMaps::SQL_FEATURES
+
+    assert features.key?(:keyword)
+    assert features.key?(:comment)
+    assert features.key?(:string)
+    assert features.key?(:number)
+    assert features.key?(:type)
+    assert features.key?(:function_name)
+    assert features.key?(:variable)
+    assert features.key?(:operator)
+
+    # keyword には like（小文字）が含まれる
+    assert features[:keyword].include?(:like)
+
+    # string は content（リーフノード）
+    assert features[:string].include?(:content)
+
+    # type, function_name, operator は空（コンテナノードのみだったため）
+    assert features[:type].empty?
+    assert features[:function_name].empty?
+    assert features[:operator].empty?
+  end
 end
