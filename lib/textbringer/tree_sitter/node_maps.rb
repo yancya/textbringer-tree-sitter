@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "language_aliases"
 require_relative "node_maps/ruby"
 require_relative "node_maps/hcl"
 require_relative "node_maps/bash"
@@ -27,22 +28,27 @@ module Textbringer
     module NodeMaps
       class << self
         def for(language)
+          # Normalize language name to handle aliases
+          normalized = LanguageAliases.to_sym(language)
+
           # カスタムマップが登録されていれば、デフォルトとマージして返す
-          if @custom_maps&.key?(language)
-            default_map = default_maps[language]
+          if @custom_maps&.key?(normalized)
+            default_map = default_maps[normalized]
             if default_map
-              default_map.merge(@custom_maps[language])
+              default_map.merge(@custom_maps[normalized])
             else
-              @custom_maps[language]
+              @custom_maps[normalized]
             end
           else
-            default_maps[language]
+            default_maps[normalized]
           end
         end
 
         def register(language, node_map)
+          # Normalize language name when registering
+          normalized = LanguageAliases.to_sym(language)
           @custom_maps ||= {}
-          @custom_maps[language] = node_map
+          @custom_maps[normalized] = node_map
         end
 
         def clear_custom_maps

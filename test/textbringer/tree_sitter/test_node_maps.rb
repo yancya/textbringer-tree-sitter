@@ -240,6 +240,23 @@ class NodeMapsTest < Minitest::Test
     assert_equal :type, node_map[:predefined_type]
   end
 
+  # C# alias resolution
+  def test_csharp_alias_resolution
+    # Test that all these aliases resolve to the same node map
+    csharp_map = Textbringer::TreeSitter::NodeMaps.for(:csharp)
+    c_sharp_map = Textbringer::TreeSitter::NodeMaps.for(:"c-sharp")
+    c_sharp_str = Textbringer::TreeSitter::NodeMaps.for("c-sharp")
+    cs_map = Textbringer::TreeSitter::NodeMaps.for(:cs)
+
+    assert_equal csharp_map, c_sharp_map
+    assert_equal csharp_map, c_sharp_str
+    assert_equal csharp_map, cs_map
+
+    # Verify they all work the same
+    assert_equal :keyword, c_sharp_map[:class]
+    assert_equal :keyword, cs_map[:class]
+  end
+
   # COBOL
   def test_cobol_basic_mappings
     node_map = Textbringer::TreeSitter::NodeMaps.for(:cobol)
@@ -339,6 +356,14 @@ class NodeMapsTest < Minitest::Test
     assert_equal :builtin, node_map[:false]
     assert_equal :builtin, node_map[:null]
     assert_equal :builtin, node_map[:undefined]
+  end
+
+  # JavaScript alias resolution
+  def test_javascript_alias_resolution
+    javascript_map = Textbringer::TreeSitter::NodeMaps.for(:javascript)
+    js_map = Textbringer::TreeSitter::NodeMaps.for(:js)
+
+    assert_equal javascript_map, js_map
   end
 
   # JSON

@@ -108,8 +108,10 @@ module Textbringer
           return nil unless defined?(::TreeSitter)
 
           parser_path = TreeSitterConfig.parser_path(tree_sitter_language)
+          # Normalize language name for TreeSitter::Language.load
+          normalized = TreeSitter::LanguageAliases.normalize(tree_sitter_language)
           language = ::TreeSitter::Language.load(
-            tree_sitter_language.to_s,
+            normalized,
             parser_path
           )
 
