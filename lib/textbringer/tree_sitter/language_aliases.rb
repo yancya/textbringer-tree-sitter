@@ -38,11 +38,16 @@ module Textbringer
           # Convert to string and lowercase
           name = language.to_s.downcase
 
-          # Remove hyphens and underscores
-          normalized = name.tr("-_", "")
+          # Check exact match with known alias (e.g., "c-sharp", "js", "rb")
+          return ALIAS_TO_CANONICAL[name] if ALIAS_TO_CANONICAL.key?(name)
 
-          # Check if this normalized form is a known alias
-          ALIAS_TO_CANONICAL[normalized] || normalized
+          # Check separator-stripped match (e.g., "CSharp" → "csharp")
+          stripped = name.tr("-_", "")
+          return ALIAS_TO_CANONICAL[stripped] if ALIAS_TO_CANONICAL.key?(stripped)
+
+          # Not aliased - return original name preserving separators
+          # (e.g., "embedded-template" stays "embedded-template")
+          name
         end
 
         # Convert a normalized canonical name to a symbol

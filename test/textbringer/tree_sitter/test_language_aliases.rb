@@ -34,8 +34,13 @@ class TestLanguageAliases < Minitest::Test
 
   def test_normalize_handles_unknown_languages
     assert_equal "foobar", LanguageAliases.normalize("foobar")
-    assert_equal "foobar", LanguageAliases.normalize("foo-bar")
-    assert_equal "foobar", LanguageAliases.normalize("foo_bar")
+    assert_equal "foo-bar", LanguageAliases.normalize("foo-bar")
+    assert_equal "foo_bar", LanguageAliases.normalize("foo_bar")
+  end
+
+  def test_normalize_preserves_separators_for_non_aliased_languages
+    assert_equal "embedded-template", LanguageAliases.normalize("embedded-template")
+    assert_equal "tree-sitter", LanguageAliases.normalize("tree-sitter")
   end
 
   def test_to_sym_returns_symbol
