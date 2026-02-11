@@ -30,7 +30,18 @@ fi
 PARSER_DIR="$PROJECT_DIR/parsers/$PLATFORM"
 mkdir -p "$PARSER_DIR"
 
-echo "Downloading parsers for $PLATFORM..."
+# Faveod プラットフォーム名変換
+faveod_platform() {
+  case "$PLATFORM" in
+    darwin-arm64) echo "macos-arm64" ;;
+    darwin-x64)   echo "macos-x64" ;;
+    *)            echo "$PLATFORM" ;;
+  esac
+}
+
+FAVEOD_PLATFORM=$(faveod_platform)
+
+echo "Downloading parsers for $PLATFORM (Faveod: $FAVEOD_PLATFORM)..."
 
 # デフォルトの言語リスト
 if [[ $# -eq 0 ]]; then
@@ -40,29 +51,73 @@ else
 fi
 
 # Faveod/tree-sitter-parsers のリリースバージョン
-RELEASE_VERSION="v0.1.0"
-BASE_URL="https://github.com/Faveod/tree-sitter-parsers/releases/download/$RELEASE_VERSION"
+RELEASE_VERSION="v4.11"
+TARBALL_NAME="tree-sitter-parsers-${RELEASE_VERSION#v}-${FAVEOD_PLATFORM}.tar.gz"
+TARBALL_URL="https://github.com/Faveod/tree-sitter-parsers/releases/download/${RELEASE_VERSION}/${TARBALL_NAME}"
+
+# tarball を1回だけDL & 展開してキャッシュ
+TARBALL_CACHE_DIR=""
+
+ensure_tarball_extracted() {
+  if [[ -n "$TARBALL_CACHE_DIR" ]]; then
+    return 0
+  fi
+
+  TARBALL_CACHE_DIR=$(mktemp -d)
+  local tarball="$TARBALL_CACHE_DIR/parsers.tar.gz"
+  local extract_dir="$TARBALL_CACHE_DIR/extracted"
+
+  echo "Downloading Faveod tarball..."
+  echo "  URL: $TARBALL_URL"
+
+  if ! curl -fsSL -o "$tarball" "$TARBALL_URL"; then
+    echo "✗ Failed to download Faveod tarball"
+    TARBALL_CACHE_DIR=""
+    return 1
+  fi
+
+  if [[ ! -s "$tarball" ]]; then
+    echo "✗ Downloaded tarball is empty"
+    TARBALL_CACHE_DIR=""
+    return 1
+  fi
+
+  mkdir -p "$extract_dir"
+  tar -xzf "$tarball" -C "$extract_dir"
+  echo "✓ Tarball extracted"
+  return 0
+}
+
+cleanup_tarball_cache() {
+  if [[ -n "$TARBALL_CACHE_DIR" ]]; then
+    rm -rf "$TARBALL_CACHE_DIR"
+  fi
+}
+trap cleanup_tarball_cache EXIT
 
 download_parser() {
   local lang=$1
   local filename="libtree-sitter-${lang}${EXT}"
-  local url="${BASE_URL}/libtree-sitter-${lang}-${PLATFORM}${EXT}"
   local dest="$PARSER_DIR/$filename"
 
-  echo "Downloading $lang parser..."
-  echo "  URL: $url"
+  echo "Installing $lang parser..."
 
-  if curl -fsSL -o "$dest" "$url"; then
-    if [[ -s "$dest" ]]; then
-      echo "✓ $lang parser installed to $dest"
-      return 0
-    else
-      echo "✗ Downloaded file is empty"
-      rm -f "$dest"
-      return 1
-    fi
+  if ! ensure_tarball_extracted; then
+    echo "✗ Warning: Could not download tarball for $lang parser"
+    return 1
+  fi
+
+  local extract_dir="$TARBALL_CACHE_DIR/extracted"
+  local src
+  src=$(find "$extract_dir" -name "$filename" -print -quit)
+
+  if [[ -n "$src" ]]; then
+    cp "$src" "$dest"
+    chmod 755 "$dest"
+    echo "✓ $lang parser installed to $dest"
+    return 0
   else
-    echo "✗ Warning: Could not download $lang parser from $url"
+    echo "✗ $lang parser not found in tarball"
     return 1
   fi
 }

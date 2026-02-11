@@ -29,6 +29,18 @@ fi
 PARSER_DIR="$PROJECT_DIR/parsers/$PLATFORM"
 mkdir -p "$PARSER_DIR"
 
+# Faveod プラットフォーム名変換
+faveod_platform() {
+  case "$PLATFORM" in
+    darwin-arm64) echo "macos-arm64" ;;
+    darwin-x64)   echo "macos-x64" ;;
+    *)            echo "$PLATFORM" ;;
+  esac
+}
+
+FAVEOD_PLATFORM=$(faveod_platform)
+FAVEOD_VERSION="v4.11"
+
 echo "Building parsers for $PLATFORM..."
 
 # 一時ディレクトリ
@@ -51,23 +63,38 @@ fi
 cp "libtree-sitter-hcl$EXT" "$PARSER_DIR/"
 echo "HCL parser installed to $PARSER_DIR/libtree-sitter-hcl$EXT"
 
-# Ruby parser はプリビルド版をダウンロード
+# Ruby parser はプリビルド版をダウンロード（Faveod tarball 方式）
 echo "Downloading Ruby parser..."
 cd "$TMP_DIR"
 
-RUBY_PARSER_URL="https://github.com/Faveod/tree-sitter-parsers/releases/download/v0.1.0/libtree-sitter-ruby-$PLATFORM$EXT"
-if curl -fsSL -o "libtree-sitter-ruby$EXT" "$RUBY_PARSER_URL" 2>/dev/null; then
-  cp "libtree-sitter-ruby$EXT" "$PARSER_DIR/"
-  echo "Ruby parser installed to $PARSER_DIR/libtree-sitter-ruby$EXT"
+TARBALL_NAME="tree-sitter-parsers-${FAVEOD_VERSION#v}-${FAVEOD_PLATFORM}.tar.gz"
+TARBALL_URL="https://github.com/Faveod/tree-sitter-parsers/releases/download/${FAVEOD_VERSION}/${TARBALL_NAME}"
+EXTRACT_DIR="$TMP_DIR/faveod-extracted"
+
+echo "  URL: $TARBALL_URL"
+if curl -fsSL -o "$TMP_DIR/$TARBALL_NAME" "$TARBALL_URL" 2>/dev/null; then
+  mkdir -p "$EXTRACT_DIR"
+  tar -xzf "$TMP_DIR/$TARBALL_NAME" -C "$EXTRACT_DIR"
+
+  # tarball 内から Ruby parser を探してコピー
+  RUBY_SRC=$(find "$EXTRACT_DIR" -name "libtree-sitter-ruby$EXT" -print -quit)
+  if [[ -n "$RUBY_SRC" ]]; then
+    cp "$RUBY_SRC" "$PARSER_DIR/libtree-sitter-ruby$EXT"
+    chmod 755 "$PARSER_DIR/libtree-sitter-ruby$EXT"
+    echo "Ruby parser installed to $PARSER_DIR/libtree-sitter-ruby$EXT"
+  else
+    echo "Warning: Ruby parser not found in tarball. Building from source..."
+    git clone --depth 1 https://github.com/tree-sitter/tree-sitter-ruby.git
+    cd tree-sitter-ruby
+    cc -shared -fPIC -O2 -Isrc src/parser.c src/scanner.c -o "libtree-sitter-ruby$EXT"
+    cp "libtree-sitter-ruby$EXT" "$PARSER_DIR/"
+    echo "Ruby parser installed to $PARSER_DIR/libtree-sitter-ruby$EXT"
+  fi
 else
-  echo "Warning: Could not download Ruby parser. Building from source..."
+  echo "Warning: Could not download Faveod tarball. Building from source..."
   git clone --depth 1 https://github.com/tree-sitter/tree-sitter-ruby.git
   cd tree-sitter-ruby
-  if [[ "$EXT" == ".dylib" ]]; then
-    cc -shared -fPIC -O2 -Isrc src/parser.c src/scanner.c -o "libtree-sitter-ruby$EXT"
-  else
-    cc -shared -fPIC -O2 -Isrc src/parser.c src/scanner.c -o "libtree-sitter-ruby$EXT"
-  fi
+  cc -shared -fPIC -O2 -Isrc src/parser.c src/scanner.c -o "libtree-sitter-ruby$EXT"
   cp "libtree-sitter-ruby$EXT" "$PARSER_DIR/"
   echo "Ruby parser installed to $PARSER_DIR/libtree-sitter-ruby$EXT"
 fi
