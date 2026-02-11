@@ -12,6 +12,7 @@ module Textbringer
           heredoc_body
           heredoc_content
           heredoc_start
+          heredoc_end
           ansi_c_string
           translated_string
         ],
@@ -36,15 +37,21 @@ module Textbringer
           readonly
           export
           unset
+          unsetenv
           typeset
         ],
         number: %i[number],
         constant: %i[],
-        function_name: %i[function_definition],
+        function_name: %i[
+          function_definition
+          command
+          command_name
+        ],
         variable: %i[
           variable_name
           special_variable_name
           variable_assignment
+          variable_assignments
         ],
         type: %i[],
         operator: %i[
@@ -52,6 +59,10 @@ module Textbringer
           heredoc_redirect
           herestring_redirect
           test_operator
+          binary_expression
+          unary_expression
+          ternary_expression
+          postfix_expression
         ],
         punctuation: %i[],
         builtin: %i[
@@ -59,8 +70,38 @@ module Textbringer
           command_substitution
           process_substitution
           expansion
+          simple_expansion
+          arithmetic_expansion
+          brace_expression
         ],
-        property: %i[array]
+        property: %i[
+          array
+          program
+          redirected_statement
+          for_statement
+          c_style_for_statement
+          while_statement
+          if_statement
+          elif_clause
+          else_clause
+          case_statement
+          case_item
+          pipeline
+          list
+          negated_command
+          declaration_command
+          unset_command
+          compound_statement
+          subshell
+          parenthesized_expression
+          concatenation
+          do_group
+          word
+          regex
+          extglob_pattern
+          subscript
+          file_descriptor
+        ]
       }.freeze
 
       BASH = BASH_FEATURES.flat_map { |face, nodes|

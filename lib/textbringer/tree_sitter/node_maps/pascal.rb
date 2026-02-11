@@ -6,16 +6,21 @@ module Textbringer
       # Pascal の tree-sitter ノードタイプは kXxx 形式が多い
       PASCAL_FEATURES = {
         comment: %i[comment],
-        string: %i[string],
+        string: %i[
+          literalString
+          declString
+        ],
         keyword: %i[
           kBegin
           kEnd
+          kEndDot
           kIf
           kThen
           kElse
           kFor
           kTo
           kDownto
+          kForeach
           kWhile
           kRepeat
           kUntil
@@ -25,12 +30,18 @@ module Textbringer
           kWith
           kFunction
           kProcedure
+          kOperator
           kProgram
           kUnit
+          kLibrary
           kInterface
           kImplementation
+          kInitialization
+          kFinalization
           kVar
+          kThreadvar
           kConst
+          kResourcestring
           kType
           kArray
           kRecord
@@ -46,14 +57,22 @@ module Textbringer
           kProtected
           kPublic
           kPublished
+          kStrictPrivate
+          kStrictProtected
           kVirtual
           kOverride
+          kReintroduce
           kAbstract
+          kSealed
           kStatic
+          kDynamic
           kForward
           kExternal
+          kExport
+          kExports
           kUses
           kIn
+          kOut
           kNil
           kNot
           kAnd
@@ -61,10 +80,12 @@ module Textbringer
           kXor
           kDiv
           kMod
+          kFdiv
           kShl
           kShr
           kAs
           kIs
+          kAt
           kTry
           kExcept
           kFinally
@@ -72,26 +93,190 @@ module Textbringer
           kOn
           kGoto
           kLabel
-          kExit
           kBreak
           kContinue
+          kExit
+          kAsm
+          kPacked
+          kAbsolute
+          kAssembler
+          kCdecl
+          kCppdecl
+          kFar
+          kNear
+          kPascal
+          kRegister
+          kSafecall
+          kStdcall
+          kVarargs
+          kLocal
+          kMessage
+          kDefault
+          kIndex
+          kName
+          kRead
+          kWrite
+          kStored
+          kImplements
+          kNodefault
+          kOverload
+          kReintroduce
+          kVirtual
+          kAbstract
+          kSealed
+          kStatic
+          kHelper
+          kStrict
+          kGeneric
+          kSpecialize
+          kReference
+          kConstref
+          kOperator
+          kInline
+          kInterrupt
+          kIocheck
+          kHardfloat
+          kSoftfloat
+          kNostackframe
+          kNoreturn
+          kAlias
+          kDeprecated
+          kExperimental
+          kPlatform
+          kUnimplemented
+          kMs_abi_default
+          kMs_abi_cdecl
+          kSysv_abi_default
+          kSysv_abi_cdecl
+          kVectorcall
+          kCvar
+          kMwpascal
+          kSaveregisters
+          kWinapi
+          kDelayed
+          kDispId
+          kDispInterface
+          kObjcclass
+          kObjccategory
+          kObjcprotocol
+          kOptional
+          kRequired
         ],
         number: %i[
-          integer
-          real
-          hex
+          literalNumber
         ],
-        constant: %i[],
-        function_name: %i[],
-        variable: %i[identifier],
-        type: %i[type_identifier],
-        operator: %i[],
+        constant: %i[
+          guid
+        ],
+        function_name: %i[
+          defProc
+          declProc
+          declProcRef
+          exprCall
+        ],
+        variable: %i[
+          identifier
+          operatorName
+        ],
+        type: %i[
+          type
+          typeref
+          typerefPtr
+          typerefDot
+          typerefTpl
+          typerefArgs
+          declType
+          declTypes
+          declMetaClass
+          declClass
+          declIntf
+          declHelper
+          declEnum
+          declEnumValue
+          declSet
+          declArray
+          declVariant
+          declVariantClause
+        ],
+        operator: %i[
+          exprBinary
+          exprUnary
+          assignment
+        ],
         punctuation: %i[],
         builtin: %i[
           kTrue
           kFalse
         ],
-        property: %i[]
+        property: %i[
+          root
+          program
+          library
+          unit
+          moduleName
+          block
+          blockTr
+          declSection
+          declUses
+          declConst
+          declVar
+          declVars
+          declField
+          declArg
+          declArgs
+          declLabel
+          declLabels
+          declExport
+          declExports
+          declProp
+          declPropArgs
+          varDef
+          varAssignDef
+          defaultValue
+          statement
+          statements
+          if
+          ifElse
+          case
+          caseCase
+          caseLabel
+          for
+          foreach
+          while
+          repeat
+          with
+          try
+          exceptionHandler
+          exceptionElse
+          goto
+          label
+          raise
+          asmBody
+          procAttribute
+          procExternal
+          genericArg
+          genericArgs
+          genericDot
+          genericTpl
+          exprArgs
+          exprParens
+          exprBrackets
+          exprSubscript
+          exprDot
+          exprTpl
+          arrInitializer
+          recInitializer
+          recInitializerField
+          lambda
+          legacyFormat
+          range
+          inherited
+          pp
+          implementation
+          interface
+          initialization
+          finalization
+        ]
       }.freeze
 
       PASCAL = PASCAL_FEATURES.flat_map { |face, nodes|

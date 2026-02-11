@@ -5,8 +5,12 @@ module Textbringer
     module NodeMaps
       # JSON_LANG - Ruby の JSON モジュールと名前衝突を避けるため
       JSON_FEATURES = {
-        comment: %i[],
-        string: %i[string],
+        comment: %i[comment],
+        string: %i[
+          string
+          string_content
+          escape_sequence
+        ],
         keyword: %i[],
         number: %i[number],
         constant: %i[],
@@ -20,7 +24,12 @@ module Textbringer
           false
           null
         ],
-        property: %i[pair]
+        property: %i[
+          pair
+          array
+          object
+          document
+        ]
       }.freeze
 
       JSON_LANG = JSON_FEATURES.flat_map { |face, nodes|
