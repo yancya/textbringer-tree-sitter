@@ -1,0 +1,39 @@
+From bcf77bd745ce2bed98de2481c03707f38b061eab Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Feb 2026 12:42:07 +0000
+Subject: [PATCH] style: Fix rubocop offenses in query_cursor_test.rb
+
+---
+ test/tree_sitter/query_cursor_test.rb | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/test/tree_sitter/query_cursor_test.rb b/test/tree_sitter/query_cursor_test.rb
+index 0a4186f..6659e4d 100644
+--- a/test/tree_sitter/query_cursor_test.rb
++++ b/test/tree_sitter/query_cursor_test.rb
+@@ -1,15 +1,15 @@
+ # frozen_string_literal: true
+
+-require_relative "../test_helper"
++require_relative '../test_helper'
+
+-describe "QueryCursor" do
+-  it "must not emit method redefined warnings when loading the extension" do
+-    lib_path = File.expand_path("../../lib", __dir__)
++describe 'QueryCursor' do
++  it 'must not emit method redefined warnings when loading the extension' do
++    lib_path = File.expand_path('../../lib', __dir__)
+     output = IO.popen(
+-      [RbConfig.ruby, "-W", "-I", lib_path, "-e", "require 'tree_sitter'"],
+-      err: [:child, :out],
+-    ) { |io| io.read }
++      [RbConfig.ruby, '-W', '-I', lib_path, '-e', "require 'tree_sitter'"],
++      err: %i[child out], &:read
++    )
+     refute_match(/method redefined/, output,
+-      "Loading tree_sitter should not produce 'method redefined' warnings:\n#{output}")
++                 "Loading tree_sitter should not produce 'method redefined' warnings:\n#{output}")
+   end
+ end
+--
+2.43.0
