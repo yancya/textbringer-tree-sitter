@@ -930,6 +930,8 @@ module TextbringerTreeSitterCLI
 end
 
 # Only run CLI if executed directly (not when loaded by tests)
-if __FILE__ == $PROGRAM_NAME
+# __FILE__ == $PROGRAM_NAME は直接 ruby で実行した場合にマッチ
+# basename チェックは bundle exec 経由（binstub → Gem.activate_and_load_bin_path → load）でマッチ
+if __FILE__ == $PROGRAM_NAME || File.basename($PROGRAM_NAME) == "textbringer-tree-sitter"
   TextbringerTreeSitterCLI.run(ARGV)
 end
