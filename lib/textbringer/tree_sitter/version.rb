@@ -2,6 +2,6 @@
 
 module Textbringer
   module TreeSitter
-    VERSION = "1.2.3"
+    VERSION = "1.2.4"
   end
 end
