@@ -71,8 +71,16 @@ jobs:
               fi
             fi
 
-            # named node のみ抽出（記号トークンは除外）
-            upstream_nodes=$(jq -r '.[] | select(.named == true) | .type' "tmp/grammars/${lang}-node-types.json" 2>/dev/null | sort -u)
+            # actionable な named leaf node のみ抽出（記号・抽象/コンテナ系ノードを除外）
+            upstream_nodes=$(jq -r '
+              .[]
+              | select(.named == true)
+              | select(.type | startswith("_") | not)
+              | select((.subtypes // []) | length == 0)
+              | select((.children // null) == null)
+              | select((.fields // {}) | length == 0)
+              | .type
+            ' "tmp/grammars/${lang}-node-types.json" 2>/dev/null | sort -u)
 
             # 現在の NodeMaps から定義済みノードを抽出
             node_map_file="lib/textbringer/tree_sitter/node_maps/${lang}.rb"

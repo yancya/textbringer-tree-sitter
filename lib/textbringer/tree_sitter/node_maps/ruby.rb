@@ -74,11 +74,17 @@ module Textbringer
           instance_variable
           class_variable
           global_variable
+          forward_argument
+          forward_parameter
         ],
         type: %i[],
-        operator: %i[],
-        punctuation: %i[],
-        builtin: %i[nil true false],
+        operator: %i[
+          operator
+        ],
+        punctuation: %i[
+          empty_statement
+        ],
+        builtin: %i[nil true false hash_splat_nil],
         property: %i[]
       }.freeze
 
