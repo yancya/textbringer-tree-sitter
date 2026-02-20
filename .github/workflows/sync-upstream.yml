@@ -71,14 +71,14 @@ jobs:
               fi
             fi
 
-            # 全ノードタイプを抽出
-            upstream_nodes=$(jq -r '.[].type' "tmp/grammars/${lang}-node-types.json" 2>/dev/null | sort -u)
+            # named node のみ抽出（記号トークンは除外）
+            upstream_nodes=$(jq -r '.[] | select(.named == true) | .type' "tmp/grammars/${lang}-node-types.json" 2>/dev/null | sort -u)
 
             # 現在の NodeMaps から定義済みノードを抽出
             node_map_file="lib/textbringer/tree_sitter/node_maps/${lang}.rb"
             if [[ -f "$node_map_file" ]]; then
-              # Ruby ファイルからシンボルを抽出
-              current_nodes=$(grep -oE ':[a-zA-Z_][a-zA-Z0-9_]*' "$node_map_file" | sed 's/^://' | sort -u)
+              # NodeMap の %i[...] からノードシンボルを抽出（defined? なども含める）
+              current_nodes=$(ruby -e 'content = File.read(ARGV[0], encoding: "UTF-8"); puts content.scan(/%i\[(.*?)\]/m).flat_map { |m| m[0].split(/\s+/) }.reject(&:empty?).uniq.sort' "$node_map_file")
 
               # 差分を計算（upstream にあって current にないもの）
               new_nodes=$(comm -23 <(echo "$upstream_nodes") <(echo "$current_nodes") | grep -v '^$' || true)
