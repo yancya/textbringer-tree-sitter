@@ -31,7 +31,7 @@ module Textbringer
           # Normalize language name to handle aliases
           normalized = LanguageAliases.to_sym(language)
 
-          # カスタムマップが登録されていれば、デフォルトとマージして返す
+          # If a custom map is registered, merge it with defaults and return
           if @custom_maps&.key?(normalized)
             default_map = default_maps[normalized]
             if default_map

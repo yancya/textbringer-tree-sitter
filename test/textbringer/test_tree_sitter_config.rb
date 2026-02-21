@@ -61,7 +61,7 @@ class TreeSitterConfigTest < Minitest::Test
   def test_define_default_faces_has_correct_attributes
     Textbringer::TreeSitterConfig.define_default_faces
 
-    # 代表的な Face の属性をチェック
+    # Check attributes of representative Faces
     assert_equal({ foreground: "green" }, Textbringer::Face[:comment].attributes)
     assert_equal({ foreground: "cyan" }, Textbringer::Face[:string].attributes)
     assert_equal({ foreground: "yellow" }, Textbringer::Face[:keyword].attributes)
@@ -81,7 +81,7 @@ class TreeSitterConfigTest < Minitest::Test
     paths = Textbringer::TreeSitterConfig.parser_search_paths
     platform = Textbringer::TreeSitterConfig.platform
 
-    # ~/.textbringer/parsers/{platform} が含まれる
+    # Should include ~/.textbringer/parsers/{platform}
     user_path = File.expand_path("~/.textbringer/parsers/#{platform}")
     assert_includes paths, user_path
   end
@@ -89,7 +89,7 @@ class TreeSitterConfigTest < Minitest::Test
   def test_parser_search_paths_includes_gem_dir
     paths = Textbringer::TreeSitterConfig.parser_search_paths
 
-    # gem 内の parsers/{platform} が含まれる
+    # Should include parsers/{platform} within the gem
     assert paths.any? { |p| p.include?("parsers") && p.include?(Textbringer::TreeSitterConfig.platform) }
   end
 
@@ -103,7 +103,7 @@ class TreeSitterConfigTest < Minitest::Test
   end
 
   def test_parser_path_finds_in_search_paths
-    # 一時ディレクトリに parser を配置してテスト
+    # Place a parser in a temporary directory and test
     Dir.mktmpdir do |tmpdir|
       platform = Textbringer::TreeSitterConfig.platform
       parser_dir = File.join(tmpdir, platform)

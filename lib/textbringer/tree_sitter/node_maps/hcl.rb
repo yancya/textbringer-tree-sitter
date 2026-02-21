@@ -3,8 +3,8 @@
 module Textbringer
   module TreeSitter
     module NodeMaps
-      # HCL (HashiCorp Configuration Language) Feature-based ノードマッピング
-      # Rouge の Terraform lexer では認識されない for, in, function_call を正しく処理
+      # HCL (HashiCorp Configuration Language) feature-based node mapping
+      # Correctly handles for, in, function_call which Rouge's Terraform lexer fails to recognize
       HCL_FEATURES = {
         comment: %i[comment],
         string: %i[
@@ -62,7 +62,7 @@ module Textbringer
         ]
       }.freeze
 
-      # Feature → Face の展開
+      # Expand Feature -> Face mapping
       HCL = HCL_FEATURES.flat_map { |face, nodes|
         nodes.map { |node| [node, face] }
       }.to_h.freeze

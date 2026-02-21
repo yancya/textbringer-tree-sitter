@@ -169,14 +169,29 @@ class TestLanguageConfig < Minitest::Test
     assert_match(/elixir:/, content)
   end
 
+  def test_kotlin_and_swift_build_cmd_include_scanner
+    [:kotlin, :swift].each do |lang|
+      info = TextbringerTreeSitterCLI::BUILD_PARSERS[lang]
+      result = info[:build_cmd].call("/dummy/src", "/dummy/out.dylib")
+      assert result.any? { |arg| arg.include?("scanner.c") },
+        "#{lang}'s build_cmd should include scanner.c"
+    end
+  end
+
+  def test_swift_branch_has_generated_files
+    info = TextbringerTreeSitterCLI::BUILD_PARSERS[:swift]
+    refute_equal "main", info[:branch],
+      "swift's main branch lacks parser.c; should use a tag with generated files"
+  end
+
   def test_build_cmd_lambdas_return_array
     TextbringerTreeSitterCLI::BUILD_PARSERS.each do |lang, info|
       result = info[:build_cmd].call("/dummy/src", "/dummy/out.dylib")
       assert_kind_of Array, result,
-        "#{lang} の build_cmd は Array を返すべき（String だと Open3.capture2e がシェル経由で実行される）"
+        "#{lang}'s build_cmd should return an Array (String causes Open3.capture2e to run via shell)"
       result.each_with_index do |elem, i|
         assert_kind_of String, elem,
-          "#{lang} の build_cmd[#{i}] は String であるべき"
+          "#{lang}'s build_cmd[#{i}] should be a String"
       end
     end
   end
@@ -186,22 +201,22 @@ class TestLanguageConfig < Minitest::Test
       src_dir = File.join(tmpdir, "src")
       FileUtils.mkdir_p(src_dir)
 
-      # scanner なしのケース
+      # Case without scanner
       File.write(File.join(src_dir, "parser.c"), "")
       result = TextbringerTreeSitterCLI.guess_build_cmd(tmpdir, "/dummy/out.dylib")
-      assert_kind_of Array, result, "guess_build_cmd（scanner なし）は Array を返すべき"
+      assert_kind_of Array, result, "guess_build_cmd (no scanner) should return an Array"
 
-      # .c scanner ありのケース
+      # Case with .c scanner
       File.write(File.join(src_dir, "scanner.c"), "")
       result = TextbringerTreeSitterCLI.guess_build_cmd(tmpdir, "/dummy/out.dylib")
-      assert_kind_of Array, result, "guess_build_cmd（.c scanner）は Array を返すべき"
+      assert_kind_of Array, result, "guess_build_cmd (.c scanner) should return an Array"
       assert_includes result, "cc"
 
-      # .cc scanner ありのケース
+      # Case with .cc scanner
       FileUtils.rm(File.join(src_dir, "scanner.c"))
       File.write(File.join(src_dir, "scanner.cc"), "")
       result = TextbringerTreeSitterCLI.guess_build_cmd(tmpdir, "/dummy/out.dylib")
-      assert_kind_of Array, result, "guess_build_cmd（.cc scanner）は Array を返すべき"
+      assert_kind_of Array, result, "guess_build_cmd (.cc scanner) should return an Array"
       assert_includes result, "c++"
       assert_includes result, "-std=c++14"
     end

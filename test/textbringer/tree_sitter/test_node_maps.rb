@@ -11,7 +11,7 @@ class NodeMapsTest < Minitest::Test
   def test_ruby_keyword_mappings
     node_map = Textbringer::TreeSitter::NodeMaps.for(:ruby)
 
-    # 基本キーワード
+    # Basic keywords
     assert_equal :keyword, node_map[:def]
     assert_equal :keyword, node_map[:end]
     assert_equal :keyword, node_map[:class]
@@ -61,8 +61,8 @@ class NodeMapsTest < Minitest::Test
   def test_ruby_function_name_mapping
     node_map = Textbringer::TreeSitter::NodeMaps.for(:ruby)
 
-    # method, singleton_method, call はコンテナノードなので除外済み
-    # function_name feature は空（リーフノードのみ yield するため不要）
+    # method, singleton_method, call are container nodes and thus excluded
+    # function_name feature is empty (not needed since only leaf nodes are yielded)
     assert_nil node_map[:method]
     assert_nil node_map[:singleton_method]
     assert_nil node_map[:call]
@@ -86,7 +86,7 @@ class NodeMapsTest < Minitest::Test
   def test_hcl_keyword_mappings
     node_map = Textbringer::TreeSitter::NodeMaps.for(:hcl)
 
-    # Rouge で認識されなかった for, in がキーワードとして認識される
+    # for, in were not recognized by Rouge; now recognized as keywords
     assert_equal :keyword, node_map[:for]
     assert_equal :keyword, node_map[:in]
     assert_equal :keyword, node_map[:if]
@@ -98,7 +98,7 @@ class NodeMapsTest < Minitest::Test
   def test_hcl_function_call_mapping
     node_map = Textbringer::TreeSitter::NodeMaps.for(:hcl)
 
-    # Rouge で認識されなかった function_call
+    # function_call was not recognized by Rouge
     assert_equal :function_name, node_map[:function_call]
   end
 
@@ -144,14 +144,14 @@ class NodeMapsTest < Minitest::Test
     original_map = Textbringer::TreeSitter::NodeMaps.for(:ruby)
     assert_equal :keyword, original_map[:def]
 
-    # カスタムマップで上書き
+    # Override with custom map
     custom_ruby = { def: :constant }
     Textbringer::TreeSitter::NodeMaps.register(:ruby, custom_ruby)
 
     node_map = Textbringer::TreeSitter::NodeMaps.for(:ruby)
     assert_equal :constant, node_map[:def]
 
-    # 他のノードはデフォルトを継承
+    # Other nodes inherit the default
     assert_equal :comment, node_map[:comment]
   end
 
@@ -165,7 +165,7 @@ class NodeMapsTest < Minitest::Test
 
     assert_includes languages, :ruby
     assert_includes languages, :hcl
-    # prebuild 済み言語
+    # Prebuilt languages
     assert_includes languages, :bash
     assert_includes languages, :c
     assert_includes languages, :csharp
@@ -506,7 +506,7 @@ class NodeMapsTest < Minitest::Test
   def test_sql_basic_mappings
     node_map = Textbringer::TreeSitter::NodeMaps.for(:sql)
 
-    # キーワード
+    # Keywords
     assert_equal :keyword, node_map[:SELECT]
     assert_equal :keyword, node_map[:FROM]
     assert_equal :keyword, node_map[:WHERE]
@@ -521,26 +521,26 @@ class NodeMapsTest < Minitest::Test
     assert_equal :keyword, node_map[:ROLLBACK]
     assert_equal :keyword, node_map[:like]
 
-    # コメント
+    # Comments
     assert_equal :comment, node_map[:comment]
     assert_equal :comment, node_map[:line_comment]
     assert_equal :comment, node_map[:block_comment]
 
-    # 文字列（string はコンテナ、content がリーフ）
+    # Strings (string is a container; content is the leaf)
     assert_equal :string, node_map[:content]
     assert_nil node_map[:string]
 
-    # 数値
+    # Numbers
     assert_equal :number, node_map[:number]
 
-    # identifier はリーフノード
+    # identifier is a leaf node
     assert_equal :variable, node_map[:identifier]
   end
 
   def test_sql_container_nodes_not_mapped
     node_map = Textbringer::TreeSitter::NodeMaps.for(:sql)
 
-    # コンテナノードはマッピングされない
+    # Container nodes are not mapped
     assert_nil node_map[:function_call]
     assert_nil node_map[:binary_expression]
     assert_nil node_map[:boolean_expression]
@@ -552,7 +552,7 @@ class NodeMapsTest < Minitest::Test
   def test_sql_removed_nonexistent_keywords
     node_map = Textbringer::TreeSitter::NodeMaps.for(:sql)
 
-    # 存在しない複合キーワードが削除されている
+    # Non-existent compound keywords have been removed
     assert_nil node_map[:FOREIGN_KEY]
     assert_nil node_map[:IF_EXISTS]
     assert_nil node_map[:IF_NOT_EXISTS]
@@ -573,13 +573,13 @@ class NodeMapsTest < Minitest::Test
     assert features.key?(:variable)
     assert features.key?(:operator)
 
-    # keyword には like（小文字）が含まれる
+    # keyword includes like (lowercase)
     assert features[:keyword].include?(:like)
 
-    # string は content（リーフノード）
+    # string maps to content (leaf node)
     assert features[:string].include?(:content)
 
-    # type, function_name, operator は空（コンテナノードのみだったため）
+    # type, function_name, operator are empty (contained only container nodes)
     assert features[:type].empty?
     assert features[:function_name].empty?
     assert features[:operator].empty?

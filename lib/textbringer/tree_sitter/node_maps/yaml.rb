@@ -3,7 +3,7 @@
 module Textbringer
   module TreeSitter
     module NodeMaps
-      # YAML_LANG - Ruby の YAML モジュールと名前衝突を避けるため
+      # YAML_LANG - named to avoid conflict with Ruby's YAML module
       YAML_FEATURES = {
         comment: %i[comment],
         string: %i[

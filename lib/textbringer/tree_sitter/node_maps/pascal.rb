@@ -3,7 +3,7 @@
 module Textbringer
   module TreeSitter
     module NodeMaps
-      # Pascal の tree-sitter ノードタイプは kXxx 形式が多い
+      # Pascal tree-sitter node types often use the kXxx naming convention
       PASCAL_FEATURES = {
         comment: %i[comment],
         string: %i[

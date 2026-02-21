@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-# Textbringer plugin エントリポイント
-# Textbringer がプラグインを自動ロードする際に読み込まれる
+# Textbringer plugin entry point
+# Loaded when Textbringer auto-loads plugins
 
-# tree_sitter gem を先に require して namespace 衝突を防ぐ
-# (Textbringer::TreeSitter より先に ::TreeSitter を定義)
+# Require tree_sitter gem first to prevent namespace collision
+# (Define ::TreeSitter before Textbringer::TreeSitter)
 begin
   require "tree_sitter"
 rescue LoadError
-  # tree_sitter gem がない場合は無視（parser なしで動作）
+  # Ignore if tree_sitter gem is not available (works without parser)
 end
 
 require "textbringer/tree_sitter/version"
@@ -16,10 +16,10 @@ require "textbringer/tree_sitter_config"
 require "textbringer/tree_sitter/node_maps"
 require "textbringer/tree_sitter_adapter"
 
-# デフォルトの Face を定義
+# Define default Faces
 Textbringer::TreeSitterConfig.define_default_faces
 
-# ユーザー定義の node_maps を読み込む
+# Load user-defined node_maps
 # ~/.textbringer/tree_sitter/node_maps/*.rb
 user_node_maps_dir = File.expand_path("~/.textbringer/tree_sitter/node_maps")
 if Dir.exist?(user_node_maps_dir)
@@ -32,7 +32,7 @@ if Dir.exist?(user_node_maps_dir)
   end
 end
 
-# 既存 Mode → 言語 のマッピング
+# Existing Mode -> language mapping
 MODE_LANGUAGE_MAP = {
   "RubyMode" => :ruby,
   "CMode" => :c,
@@ -65,7 +65,7 @@ MODE_LANGUAGE_MAP = {
   "PascalMode" => :pascal,
 }.freeze
 
-# 言語 → ファイルパターン（自動 Mode 生成用）
+# Language -> file pattern (for automatic Mode generation)
 LANGUAGE_FILE_PATTERNS = {
   markdown: /\.(md|markdown|mkd|mkdn)$/i,
   hcl: /\.(tf|tfvars|hcl)$/i,
@@ -95,26 +95,26 @@ LANGUAGE_FILE_PATTERNS = {
   pascal: /\.(pas|pp|p|inc)$/i,
 }.freeze
 
-# parser + node_map がある言語で、Mode がなければ自動生成
+# Auto-generate Mode for languages that have parser + node_map but no existing Mode
 Textbringer::TreeSitter::NodeMaps.available_languages.each do |language|
   next unless Textbringer::TreeSitterConfig.parser_available?(language)
 
-  # 既存の Mode を探す
+  # Look for an existing Mode
   mode_name = MODE_LANGUAGE_MAP.key(language)&.to_s ||
               "#{language.to_s.split('_').map(&:capitalize).join}Mode"
 
   unless Textbringer.const_defined?(mode_name)
-    # Mode が存在しない場合は自動生成
+    # Auto-generate Mode if it does not exist
     pattern = LANGUAGE_FILE_PATTERNS[language]
     if pattern
-      # class_eval で名前付きクラスを定義（inherited フック対策）
+      # Define named class via class_eval (to trigger inherited hook properly)
       Textbringer.class_eval <<~RUBY, __FILE__, __LINE__ + 1
         class #{mode_name} < ProgrammingMode
           self.file_name_pattern = #{pattern.inspect}
 
-          # 最低限の indent_line を定義（改行できるように）
+          # Define minimal indent_line (to allow line breaks)
           def indent_line
-            # デフォルトは何もしない
+            # No-op by default
           end
         end
       RUBY
@@ -122,13 +122,13 @@ Textbringer::TreeSitter::NodeMaps.available_languages.each do |language|
   end
 end
 
-# デバッグログ用
+# Debug logging helper
 def tree_sitter_debug(msg)
   return unless ENV["TEXTBRINGER_TREE_SITTER_DEBUG"] == "1"
   File.open("/tmp/tree_sitter_plugin.log", "a") { |f| f.puts "[#{Time.now}] #{msg}" }
 end
 
-# 利用可能な parser と node_map がある Mode に tree-sitter を有効化
+# Enable tree-sitter on Modes that have an available parser and node_map
 tree_sitter_debug "=== Enabling tree-sitter on modes ==="
 tree_sitter_debug "available_languages: #{Textbringer::TreeSitter::NodeMaps.available_languages.inspect}"
 
@@ -147,19 +147,19 @@ MODE_LANGUAGE_MAP.each do |mode_name, language|
     mode_class = Textbringer.const_get(mode_name)
     tree_sitter_debug "  found mode_class: #{mode_class}"
 
-    # 既に tree-sitter が設定されていればスキップ
+    # Skip if tree-sitter is already configured
     if mode_class.respond_to?(:tree_sitter_language) && mode_class.tree_sitter_language
       tree_sitter_debug "  already has tree_sitter_language: #{mode_class.tree_sitter_language}"
       next
     end
 
-    # TreeSitterAdapter を extend して use_tree_sitter を呼ぶ
+    # Extend with TreeSitterAdapter and call use_tree_sitter
     mode_class.extend(Textbringer::TreeSitterAdapter::ClassMethods)
     mode_class.use_tree_sitter(language)
     tree_sitter_debug "  enabled tree-sitter for #{mode_name}"
   rescue NameError => e
     tree_sitter_debug "  NameError: #{e.message}"
-    # Mode が存在しない場合は無視
+    # Ignore if Mode does not exist
   end
 end
 

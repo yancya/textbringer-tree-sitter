@@ -135,7 +135,7 @@ module Textbringer
         ]
       }.freeze
 
-      # Feature → Face の展開
+      # Expand Feature -> Face mapping
       CRYSTAL = CRYSTAL_FEATURES.flat_map { |face, nodes|
         nodes.map { |node| [node, face] }
       }.to_h.freeze

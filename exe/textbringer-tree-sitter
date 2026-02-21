@@ -18,13 +18,13 @@ require_relative "../lib/textbringer/tree_sitter/platform"
 module TextbringerTreeSitterCLI
   FAVEOD_VERSION = "v4.11"
 
-  # Faveod tarball に含まれる parser
+  # Parsers included in the Faveod tarball
   FAVEOD_PARSERS = %w[
     bash c c-sharp cobol embedded-template groovy haml html
     java javascript json pascal php python ruby rust
   ].freeze
 
-  # 要ビルド（Faveod に含まれない）
+  # Requires building from source (not included in Faveod)
   BUILD_PARSERS = {
     hcl: {
       repo: "mitchellh/tree-sitter-hcl",
@@ -80,7 +80,7 @@ module TextbringerTreeSitterCLI
     markdown: {
       repo: "tree-sitter-grammars/tree-sitter-markdown",
       branch: "split_parser",
-      commit: "9a23c1a",  # LANGUAGE_VERSION 14 (ruby_tree_sitter 互換)
+      commit: "9a23c1a",  # LANGUAGE_VERSION 14 (compatible with ruby_tree_sitter)
       subdir: "tree-sitter-markdown",
       build_cmd: ->(src_dir, out_file) {
         ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
@@ -108,15 +108,15 @@ module TextbringerTreeSitterCLI
       branch: "main",
       build_cmd: ->(src_dir, out_file) {
         ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
-         "#{src_dir}/src/parser.c", "-o", out_file]
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
     },
     swift: {
       repo: "alex-pinkus/tree-sitter-swift",
-      branch: "main",
+      branch: "0.7.1-with-generated-files",
       build_cmd: ->(src_dir, out_file) {
         ["cc", "-shared", "-fPIC", "-O2", "-I#{src_dir}/src",
-         "#{src_dir}/src/parser.c", "-o", out_file]
+         "#{src_dir}/src/parser.c", "#{src_dir}/src/scanner.c", "-o", out_file]
       }
     },
     zig: {
@@ -310,7 +310,7 @@ module TextbringerTreeSitterCLI
       # Normalize language name to handle aliases
       normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
 
-      # Faveod tarball から特定の parser をインストール
+      # Install a specific parser from the Faveod tarball
       filename = "libtree-sitter-#{normalized}#{dylib_ext}"
       dest_path = File.join(parser_dir, filename)
 
@@ -349,7 +349,7 @@ module TextbringerTreeSitterCLI
           return false
         end
 
-        # Faveod tarball 内のファイル名は正規化前の名前（例: c-sharp）の場合がある
+        # Filenames in the Faveod tarball may use pre-normalized names (e.g., c-sharp)
         faveod_filename = "libtree-sitter-#{language}#{dylib_ext}"
         src = Dir.glob("#{extract_dir}/**/#{filename}").first
         src ||= Dir.glob("#{extract_dir}/**/#{faveod_filename}").first if filename != faveod_filename
@@ -411,7 +411,7 @@ module TextbringerTreeSitterCLI
 
         puts "  Cloning..."
         if config.commit
-          # 特定コミットが必要な場合は shallow clone できない
+          # Cannot use shallow clone when a specific commit is required
           _, status = Open3.capture2e("git", "clone", "-b", config.branch,
                                       "https://github.com/#{config.repo}.git", repo_dir)
           unless status.success?
@@ -507,7 +507,7 @@ module TextbringerTreeSitterCLI
       normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
       languages = all_languages
 
-      # normalized form で比較して一致するエントリを探す
+      # Find a matching entry by comparing in normalized form
       lang, config = languages.find { |k, _|
         Textbringer::TreeSitter::LanguageAliases.normalize(k) == normalized
       }
@@ -710,7 +710,7 @@ module TextbringerTreeSitterCLI
         return false
       end
 
-      # ノードタイプを収集してヒューリスティックでマッピング
+      # Collect node types and map them heuristically
       mappings = {}
       unmapped = []
 
@@ -730,7 +730,7 @@ module TextbringerTreeSitterCLI
         end
       end
 
-      # テンプレート生成
+      # Generate template
       const_name = lang.upcase
       output = <<~RUBY
         # frozen_string_literal: true
@@ -748,7 +748,7 @@ module TextbringerTreeSitterCLI
               #{const_name}_FEATURES = {
       RUBY
 
-      # マッピング済みを出力
+      # Output mapped nodes
       mappings.each do |face, nodes|
         nodes_str = nodes.join(" ")
         output << "          #{face}: %i[#{nodes_str}],\n"
@@ -756,7 +756,7 @@ module TextbringerTreeSitterCLI
 
       output << "        }.freeze\n\n"
 
-      # 未マッピングをコメントで出力
+      # Output unmapped nodes as comments
       if unmapped.any?
         output << "        # Unmapped nodes (add to appropriate face if needed):\n"
         unmapped.each do |name|
@@ -770,14 +770,14 @@ module TextbringerTreeSitterCLI
                 nodes.map { |node| [node, face] }
               }.to_h.freeze
 
-              # 自動登録
+              # Auto-register
               register(:#{lang}, #{const_name})
             end
           end
         end
       RUBY
 
-      # ファイルに書き出し
+      # Write to file
       FileUtils.mkdir_p(node_map_dir)
       dest_path = File.join(node_map_dir, "#{lang}.rb")
       File.write(dest_path, output)
@@ -889,7 +889,7 @@ module TextbringerTreeSitterCLI
         skip_map = args.include?("--no-map")
         success = get_parser(lang)
         if success && !skip_map
-          # デフォルト node_map がある言語はスキップ
+          # Skip languages that already have a default node_map
           default_node_map_languages = %w[
             bash c cobol crystal csharp elixir groovy haml hcl html java javascript
             json pascal php python ruby rust sql swift yaml
@@ -930,8 +930,8 @@ module TextbringerTreeSitterCLI
 end
 
 # Only run CLI if executed directly (not when loaded by tests)
-# __FILE__ == $PROGRAM_NAME は直接 ruby で実行した場合にマッチ
-# basename チェックは bundle exec 経由（binstub → Gem.activate_and_load_bin_path → load）でマッチ
+# __FILE__ == $PROGRAM_NAME matches when executed directly with ruby
+# The basename check matches when run via bundle exec (binstub -> Gem.activate_and_load_bin_path -> load)
 if __FILE__ == $PROGRAM_NAME || File.basename($PROGRAM_NAME) == "textbringer-tree-sitter"
   TextbringerTreeSitterCLI.run(ARGV)
 end

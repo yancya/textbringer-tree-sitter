@@ -6,7 +6,7 @@ require "minitest/autorun"
 require "fileutils"
 require "tmpdir"
 
-# Textbringer モック実装（実 gem 依存なし）
+# Textbringer mock implementation (no real gem dependency)
 module Textbringer
   CONFIG = {}
 

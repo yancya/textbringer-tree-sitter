@@ -4,13 +4,13 @@ require "test_helper"
 require "textbringer/tree_sitter_config"
 require "textbringer/tree_sitter/node_maps"
 
-# NodeMap のバリデーションをテストするヘルパー
+# Helper for testing NodeMap validation
 module NodeMapValidator
-  # Language から利用可能なノードタイプを取得
+  # Get available node types from a Language
   #
-  # @param language_name [String, Symbol] 言語名
-  # @param lib_path [String] parser の .dylib/.so ファイルパス
-  # @return [Set<String>] ノードタイプの集合
+  # @param language_name [String, Symbol] language name
+  # @param lib_path [String] path to the parser .dylib/.so file
+  # @return [Set<String>] set of node types
   def self.available_node_types(language_name, lib_path)
     require "tree_sitter"
     require "set"
@@ -24,9 +24,9 @@ module NodeMapValidator
 
     (0...count).each do |i|
       type = language.symbol_type(i)
-      # regular symbols が named node types
-      # anonymous symbols は "def", "{" などのリテラルだが、色付けに使われる
-      # auxiliary symbols は内部用の補助ノード
+      # regular symbols are named node types
+      # anonymous symbols are literals like "def", "{", etc., but used for coloring
+      # auxiliary symbols are internal helper nodes
       if type == :regular || type == :anonymous
         name = language.symbol_name(i)
         node_types.add(name)
@@ -36,11 +36,11 @@ module NodeMapValidator
     node_types
   end
 
-  # NodeMap が文法に存在しないノードタイプを含んでいないか検証
+  # Validate that a NodeMap does not contain node types absent from the grammar
   #
-  # @param language [Symbol] 言語名
+  # @param language [Symbol] language name
   # @param node_map [Hash] NodeMap
-  # @param lib_path [String] parser の .dylib/.so ファイルパス
+  # @param lib_path [String] path to the parser .dylib/.so file
   # @return [Hash] { valid: bool, invalid: Set<String> }
   def self.validate(language, node_map, lib_path)
     return { valid: true, invalid: Set.new, skipped: true } unless File.exist?(lib_path)
@@ -48,8 +48,8 @@ module NodeMapValidator
     valid_types = available_node_types(language, lib_path)
     defined_types = Set.new(node_map.keys.map(&:to_s))
 
-    # NodeMap にあるが文法に存在しないノード
-    # これは typo や古い定義の可能性がある
+    # Nodes present in NodeMap but absent from the grammar
+    # These may be typos or outdated definitions
     invalid = defined_types - valid_types
 
     { valid: invalid.empty?, invalid: invalid, skipped: false }
@@ -69,7 +69,7 @@ class NodeMapValidatorTest < Minitest::Test
 
     skip "Parser not found" if result[:skipped]
 
-    # 不正なノードタイプがある場合、詳細を表示
+    # Show details if invalid node types are found
     unless result[:valid]
       message = "Invalid node types found in RUBY NodeMap:\n"
       result[:invalid].sort.each { |type| message += "  - #{type}\n" }
@@ -151,14 +151,14 @@ class NodeMapValidatorTest < Minitest::Test
     assert result[:valid]
   end
 
-  # 各言語の主要ノードタイプが実際に文法に存在することを確認
+  # Verify that essential node types for each language exist in the grammar
   def test_ruby_essential_nodes_exist
     skip "Parser not available" unless Textbringer::TreeSitterConfig.parser_available?("ruby")
 
     available = NodeMapValidator.available_node_types(:ruby, parser_path("ruby"))
     skip "Parser not found" if available.empty?
 
-    # Ruby grammar に必ず存在すべきノードタイプ
+    # Node types that must exist in the Ruby grammar
     essential_nodes = %w[
       comment
       string
@@ -183,7 +183,7 @@ class NodeMapValidatorTest < Minitest::Test
     available = NodeMapValidator.available_node_types(:hcl, parser_path("hcl"))
     skip "Parser not found" if available.empty?
 
-    # HCL grammar に必ず存在すべきノードタイプ
+    # Node types that must exist in the HCL grammar
     essential_nodes = %w[
       comment
       identifier
@@ -199,7 +199,7 @@ class NodeMapValidatorTest < Minitest::Test
     end
   end
 
-  # Anonymous node vs Named node の区別をテスト
+  # Test distinction between anonymous nodes and named nodes
   def test_anonymous_vs_named_nodes
     skip "Parser not available" unless Textbringer::TreeSitterConfig.parser_available?("ruby")
 
@@ -209,8 +209,8 @@ class NodeMapValidatorTest < Minitest::Test
     require "tree_sitter"
     language = TreeSitter::Language.load("ruby", lib_path)
 
-    # "def" は anonymous symbol (symbol_type == :anonymous)
-    # "method" は regular symbol (symbol_type == :regular)
+    # "def" is an anonymous symbol (symbol_type == :anonymous)
+    # "method" is a regular symbol (symbol_type == :regular)
 
     def_found = false
     method_found = false

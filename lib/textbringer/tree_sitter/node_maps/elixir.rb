@@ -3,7 +3,7 @@
 module Textbringer
   module TreeSitter
     module NodeMaps
-      # Feature-based ノードマッピング for Elixir
+      # Feature-based node mapping for Elixir
       ELIXIR_FEATURES = {
         comment: %i[comment],
         string: %i[
@@ -84,7 +84,7 @@ module Textbringer
         ]
       }.freeze
 
-      # Feature → Face の展開
+      # Expand Feature -> Face mapping
       ELIXIR = ELIXIR_FEATURES.flat_map { |face, nodes|
         nodes.map { |node| [node, face] }
       }.to_h.freeze

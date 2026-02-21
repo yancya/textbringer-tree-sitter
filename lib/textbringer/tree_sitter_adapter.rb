@@ -5,19 +5,19 @@ require_relative "tree_sitter/node_maps"
 
 module Textbringer
   module TreeSitterAdapter
-    # Emacs 風の 4 段階レベル
+    # Emacs-style 4-level highlighting
     HIGHLIGHT_LEVELS = [
-      %i[comment string],                    # Level 1: 最小限
-      %i[keyword type constant],             # Level 2: 基本
-      %i[function_name variable number],     # Level 3: 標準（デフォルト）
-      %i[operator punctuation builtin]       # Level 4: 全部
+      %i[comment string],                    # Level 1: minimal
+      %i[keyword type constant],             # Level 2: basic
+      %i[function_name variable number],     # Level 3: standard (default)
+      %i[operator punctuation builtin]       # Level 4: everything
     ].freeze
 
     module ClassMethods
       def use_tree_sitter(language)
         @tree_sitter_language = language
 
-        # prepend を使って既存の custom_highlight より優先させる
+        # Use prepend to take priority over existing custom_highlight
         prepend InstanceMethods
 
         define_method(:tree_sitter_language) do
@@ -43,16 +43,16 @@ module Textbringer
         return unless parser
 
         buffer = window.buffer
-        # textbringer 本体と同じロジック: base_pos を基準にする
+        # Same logic as textbringer core: use base_pos as the reference point
         base_pos = buffer.point_min
         buffer_text = buffer.to_s
 
-        # 増分パース: 内容未変更なら以前の Tree を再利用
+        # Incremental parsing: reuse previous Tree if content unchanged
         old_tree = get_cached_tree(buffer, buffer_text)
         tree = parser.parse_string(old_tree, buffer_text)
         return unless tree
 
-        # 新しい Tree をキャッシュ
+        # Cache the new Tree
         cache_tree(buffer, tree, buffer_text)
 
         if TreeSitterAdapter.debug?
@@ -73,7 +73,7 @@ module Textbringer
 
           attrs = Face[face]&.attributes
           if attrs
-            # Tree-sitter も Textbringer もバイトオフセットを使う
+            # Both Tree-sitter and Textbringer use byte offsets
             highlight_on[base_pos + start_byte] = attrs
             highlight_off[base_pos + end_byte] = attrs
 
@@ -104,12 +104,12 @@ module Textbringer
         cached = @tree_cache[buffer_id]
 
         if cached && cached[:language] == tree_sitter_language && cached[:content_hash] == buffer_text.hash
-          # LRU リフレッシュ: delete して再挿入で末尾に移動
+          # LRU refresh: delete and re-insert to move to the end
           @tree_cache.delete(buffer_id)
           @tree_cache[buffer_id] = cached
           cached[:tree]
         else
-          # 内容が変わっている or キャッシュなし → フルリパース
+          # Content changed or no cache -> full reparse
           @tree_cache.delete(buffer_id)
           nil
         end
@@ -120,7 +120,7 @@ module Textbringer
 
         buffer_id = buffer.object_id
 
-        # 既存エントリを削除して再挿入（LRU 順更新）
+        # Delete existing entry and re-insert (LRU order update)
         @tree_cache.delete(buffer_id)
         @tree_cache[buffer_id] = {
           language: tree_sitter_language,
@@ -133,7 +133,7 @@ module Textbringer
       end
 
       def can_highlight?
-        # textbringer 本体と同じチェック: @@has_colors を使う
+        # Same check as textbringer core: use @@has_colors
         return false unless Window.class_variable_get(:@@has_colors)
         return false if CONFIG[:syntax_highlight] == false
 
@@ -165,14 +165,14 @@ module Textbringer
         my_face = node_map&.[](node.type.to_sym)
 
         if node.child_count == 0
-          # リーフノード: 親と同じ face でカバー済みなら yield しない
+          # Leaf node: skip yield if already covered by the same face as parent
           block.call(node, node.start_byte, node.end_byte) unless my_face && my_face == covered_face
         else
-          # 非リーフノード: node_map にあり、親と異なる face なら yield
+          # Non-leaf node: yield if in node_map and face differs from parent
           if my_face && my_face != covered_face
             block.call(node, node.start_byte, node.end_byte)
           end
-          # 子へ再帰（このノードの face を伝播）
+          # Recurse into children (propagate this node's face)
           child_covered = my_face || covered_face
           node.child_count.times do |i|
             child = node.child(i)
@@ -193,12 +193,12 @@ module Textbringer
       end
 
       def enabled_faces
-        # カスタム feature 設定が優先
+        # Custom feature settings take priority
         if CONFIG[:tree_sitter_enabled_features]
           return CONFIG[:tree_sitter_enabled_features]
         end
 
-        # レベルベースの制御
+        # Level-based control
         level = CONFIG[:tree_sitter_highlight_level] || 3
         HIGHLIGHT_LEVELS.take(level).flatten
       end
@@ -206,7 +206,7 @@ module Textbringer
     end
   end
 
-  # Window モンキーパッチ
+  # Window monkey-patch
   class Window
     unless method_defined?(:original_highlight)
       alias_method :original_highlight, :highlight

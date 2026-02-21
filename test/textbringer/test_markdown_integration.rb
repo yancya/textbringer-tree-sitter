@@ -15,14 +15,14 @@ class MarkdownIntegrationTest < Minitest::Test
   end
 
   def test_user_node_map_can_be_registered
-    # ユーザー定義の node_map を登録
+    # Register a user-defined node_map
     custom_map = {
       atx_h1_marker: :keyword,
       atx_heading: :keyword,
     }
     Textbringer::TreeSitter::NodeMaps.register(:markdown, custom_map)
 
-    # 登録されたか確認
+    # Verify it was registered
     assert_includes Textbringer::TreeSitter::NodeMaps.available_languages, :markdown
     assert_equal :keyword, Textbringer::TreeSitter::NodeMaps.for(:markdown)[:atx_h1_marker]
   end
@@ -36,24 +36,24 @@ class MarkdownIntegrationTest < Minitest::Test
   def test_markdown_mode_can_use_tree_sitter
     skip "Markdown parser not installed" unless File.exist?(markdown_parser_path)
 
-    # MarkdownMode を定義
+    # Define MarkdownMode
     markdown_mode_class = Class.new(Textbringer::Mode)
     Textbringer.const_set(:MarkdownMode, markdown_mode_class) unless Textbringer.const_defined?(:MarkdownMode)
 
     mode_class = Textbringer::MarkdownMode
 
-    # node_map を登録
+    # Register node_map
     Textbringer::TreeSitter::NodeMaps.register(:markdown, {
       atx_h1_marker: :keyword,
       atx_h2_marker: :keyword,
       atx_heading: :keyword,
     })
 
-    # TreeSitterAdapter を extend
+    # Extend with TreeSitterAdapter
     mode_class.extend(Textbringer::TreeSitterAdapter::ClassMethods)
     mode_class.use_tree_sitter(:markdown)
 
-    # 設定されたか確認
+    # Verify it was configured
     assert mode_class.respond_to?(:tree_sitter_language)
     assert_equal :markdown, mode_class.tree_sitter_language
   end
@@ -62,42 +62,42 @@ class MarkdownIntegrationTest < Minitest::Test
     skip "Markdown parser not installed" unless File.exist?(markdown_parser_path)
     skip "tree_sitter gem not available" unless tree_sitter_available?
 
-    # node_map を登録
+    # Register node_map
     Textbringer::TreeSitter::NodeMaps.register(:markdown, {
       atx_h1_marker: :keyword,
       atx_h2_marker: :keyword,
       atx_heading: :keyword,
     })
 
-    # MarkdownMode を定義して TreeSitterAdapter を設定
+    # Define MarkdownMode and configure TreeSitterAdapter
     markdown_mode_class = Class.new(Textbringer::Mode) do
       extend Textbringer::TreeSitterAdapter::ClassMethods
       include Textbringer::TreeSitterAdapter::InstanceMethods
     end
     markdown_mode_class.use_tree_sitter(:markdown)
 
-    # インスタンス作成
+    # Create instance
     mode = markdown_mode_class.new
 
-    # バッファとウィンドウを準備
+    # Prepare buffer and window
     buffer = Textbringer::MockBuffer.new
     buffer.content = "# Hello World\n\nThis is a test.\n"
     buffer.mode = mode
     window = Textbringer::Window.new(buffer)
 
-    # custom_highlight を呼ぶ
+    # Call custom_highlight
     mode.custom_highlight(window)
 
-    # ハイライトが生成されたか確認
+    # Check if highlights were generated
     highlight_on = window.instance_variable_get(:@highlight_on)
     highlight_off = window.instance_variable_get(:@highlight_off)
 
-    # デバッグ出力
+    # Debug output
     puts "\n=== Markdown Highlight Debug ==="
     puts "highlight_on keys: #{highlight_on.keys.inspect}"
     puts "highlight_off keys: #{highlight_off.keys.inspect}"
 
-    # 少なくとも何かハイライトされているはず
+    # At least something should be highlighted
     refute_empty highlight_on, "Expected some highlights to be generated"
   end
 
@@ -105,15 +105,15 @@ class MarkdownIntegrationTest < Minitest::Test
     skip "Markdown parser not installed" unless File.exist?(markdown_parser_path)
     skip "tree_sitter gem not available" unless tree_sitter_available?
 
-    # Face を定義
+    # Define Face
     Textbringer::Face.define(:keyword, foreground: "yellow")
 
-    # node_map を登録（atx_h1_marker は # の部分）
+    # Register node_map (atx_h1_marker corresponds to the '#' part)
     Textbringer::TreeSitter::NodeMaps.register(:markdown, {
       atx_h1_marker: :keyword,
     })
 
-    # MarkdownMode を定義
+    # Define MarkdownMode
     markdown_mode_class = Class.new(Textbringer::Mode) do
       extend Textbringer::TreeSitterAdapter::ClassMethods
       include Textbringer::TreeSitterAdapter::InstanceMethods
@@ -131,7 +131,7 @@ class MarkdownIntegrationTest < Minitest::Test
 
     highlight_on = window.instance_variable_get(:@highlight_on)
 
-    # position 0 (# の開始位置) にハイライトがあるはず
+    # There should be a highlight at position 0 (start of '#')
     assert highlight_on.key?(0), "Expected highlight at position 0 for '#'. Got: #{highlight_on.inspect}"
   end
 

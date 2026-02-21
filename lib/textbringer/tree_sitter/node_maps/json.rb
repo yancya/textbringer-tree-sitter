@@ -3,7 +3,7 @@
 module Textbringer
   module TreeSitter
     module NodeMaps
-      # JSON_LANG - Ruby の JSON モジュールと名前衝突を避けるため
+      # JSON_LANG - named to avoid conflict with Ruby's JSON module
       JSON_FEATURES = {
         comment: %i[comment],
         string: %i[

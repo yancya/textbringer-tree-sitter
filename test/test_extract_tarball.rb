@@ -6,8 +6,8 @@ require "fileutils"
 require "rubygems/package"
 require "zlib"
 
-# exe/textbringer-tree-sitter は __FILE__ == $PROGRAM_NAME ガード付きなので
-# load で読み込んでも CLI は実行されない
+# exe/textbringer-tree-sitter has a __FILE__ == $PROGRAM_NAME guard,
+# so loading it does not execute the CLI
 load File.expand_path("../exe/textbringer-tree-sitter", __dir__)
 
 class TestExtractTarball < Minitest::Test
@@ -21,7 +21,7 @@ class TestExtractTarball < Minitest::Test
     FileUtils.rm_rf(@tmpdir)
   end
 
-  # Helper: 指定エントリを含む .tar.gz を作成
+  # Helper: create a .tar.gz containing the specified entries
   def create_tarball(entries)
     tarball_path = File.join(@tmpdir, "test.tar.gz")
     File.open(tarball_path, "wb") do |file|
@@ -61,13 +61,13 @@ class TestExtractTarball < Minitest::Test
     end
     assert_match(/[Pp]ath traversal/, error.message)
 
-    # extract_dir の外にファイルが書き込まれていないことを確認
+    # Verify no file was written outside extract_dir
     refute File.exist?(File.join(@tmpdir, "etc/malicious.txt"))
   end
 
   def test_extract_tarball_with_leading_slash_stays_within_extract_dir
-    # Ruby の File.join は先頭の / があっても extract_dir 配下に展開する
-    # （Python の os.path.join とは異なる挙動）
+    # Ruby's File.join expands under extract_dir even with a leading /
+    # (different behavior from Python's os.path.join)
     tarball = create_tarball(
       "/tmp/file.txt" => "content"
     )
@@ -76,7 +76,7 @@ class TestExtractTarball < Minitest::Test
 
     assert result
     assert_equal "content", File.read(File.join(@extract_dir, "tmp/file.txt"))
-    # extract_dir の外には書き込まれていない
+    # Not written outside extract_dir
     refute File.exist?("/tmp/file.txt") unless File.exist?("/tmp/file.txt") # skip if /tmp/file.txt already exists
   end
 

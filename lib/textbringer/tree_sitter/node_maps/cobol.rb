@@ -3,7 +3,7 @@
 module Textbringer
   module TreeSitter
     module NodeMaps
-      # COBOL のノードタイプは大文字が多い
+      # COBOL node types are mostly uppercase
       COBOL_FEATURES = {
         comment: %i[comment],
         string: %i[string_literal],
