@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 # Single line comment
+# 日本語のコメント
 
 =begin
 Multi-line
@@ -62,6 +63,7 @@ end
 end
 
 # --- Strings ---
+greeting = "こんにちは世界"
 single = 'single quoted'
 double = "double quoted with #{1 + 2} interpolation"
 heredoc = <<~HEREDOC

@@ -204,46 +204,6 @@ class TreeSitterAdapterTest < Minitest::Test
     assert Textbringer::Window.method_defined?(:highlight)
   end
 
-  # byte_offset_to_char_offset 単体テスト
-  def test_byte_offset_to_char_offset_with_ascii
-    mode = create_test_mode(:ruby)
-    text = "def hello"
-
-    # ASCII のみ: byte offset == char offset
-    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, 0)
-    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 3)
-    assert_equal 9, mode.send(:byte_offset_to_char_offset, text, 9)
-  end
-
-  def test_byte_offset_to_char_offset_with_multibyte
-    mode = create_test_mode(:ruby)
-    # "# 日本語コメント\n" は 10 文字 / 24 bytes
-    text = "# 日本語コメント\ndef hello"
-
-    # offset 0 → char 0
-    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, 0)
-    # "# " は 2 bytes / 2 chars
-    assert_equal 2, mode.send(:byte_offset_to_char_offset, text, 2)
-    # "# 日" は 3 chars / 5 bytes
-    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 5)
-    # "# 日本語コメント\n" は 10 chars / 24 bytes
-    assert_equal 10, mode.send(:byte_offset_to_char_offset, text, 24)
-    # "# 日本語コメント\ndef" は 13 chars / 27 bytes
-    assert_equal 13, mode.send(:byte_offset_to_char_offset, text, 27)
-  end
-
-  def test_byte_offset_to_char_offset_edge_cases
-    mode = create_test_mode(:ruby)
-    text = "あいう"
-
-    # 負値 → 0
-    assert_equal 0, mode.send(:byte_offset_to_char_offset, text, -1)
-    # bytesize 超え → string.length
-    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, 100)
-    # ちょうど bytesize → string.length
-    assert_equal 3, mode.send(:byte_offset_to_char_offset, text, text.bytesize)
-  end
-
   # --- キャッシュ関連テスト ---
 
   # 同じ内容で2回呼ぶと、2回目はキャッシュが効く
@@ -342,6 +302,44 @@ class TreeSitterAdapterTest < Minitest::Test
   end
 
   # --- visit_node テスト ---
+
+  # マルチバイト文字を含むバッファで highlight_on/off のキーがバイトオフセットになっていることを検証
+  def test_custom_highlight_uses_byte_offsets_for_multibyte
+    skip "Ruby parser not installed" unless parser_available?(:ruby)
+    skip "tree_sitter gem not available" unless tree_sitter_available?
+
+    Textbringer::Face.define(:comment, foreground: "blue")
+    Textbringer::CONFIG[:tree_sitter_highlight_level] = 1
+
+    mode = create_test_mode(:ruby)
+    buffer = Textbringer::MockBuffer.new
+    # "# 日本語\n" は 13 bytes (# + space + 日本語 = 2 + 9 + 1 = 12... let's count)
+    # "# " = 2 bytes, "日" = 3 bytes, "本" = 3 bytes, "語" = 3 bytes, "\n" = 1 byte → total 12 bytes
+    # 文字数は 6 文字 ("# 日本語\n")
+    buffer.content = "# 日本語\n"
+    buffer.mode = mode
+    window = Textbringer::Window.new(buffer)
+
+    mode.custom_highlight(window)
+
+    highlight_on = window.instance_variable_get(:@highlight_on)
+    highlight_off = window.instance_variable_get(:@highlight_off)
+
+    # コメントのハイライトが存在するはず
+    refute_empty highlight_on, "Expected highlights for multibyte comment"
+
+    # キーはバイトオフセットであるべき（文字オフセットではない）
+    # コメントは position 0 から始まる
+    assert highlight_on.key?(0), "Expected highlight_on at byte offset 0"
+
+    # コメントの終了位置はバイトオフセットで 11 (改行を含まない場合) or 12 (改行含む場合)
+    # tree-sitter のパース結果に依存するが、少なくとも文字オフセット(5)ではないはず
+    end_positions = highlight_off.keys
+    # バイトオフセットなら 11 or 12、文字オフセットなら 5 or 6
+    # バイトオフセットが使われていることを確認
+    assert end_positions.any? { |pos| pos > 6 },
+      "Expected byte offsets (>6) but got char offsets: #{end_positions.inspect}"
+  end
 
   def test_visit_node_yields_only_leaf_nodes
     mode = create_test_mode(:ruby)
@@ -448,5 +446,16 @@ class TreeSitterAdapterTest < Minitest::Test
       use_tree_sitter language
     end
     klass.new
+  end
+
+  def parser_available?(language)
+    Textbringer::TreeSitterConfig.parser_available?(language)
+  end
+
+  def tree_sitter_available?
+    require "tree_sitter"
+    true
+  rescue LoadError
+    false
   end
 end

@@ -1,4 +1,5 @@
 # Single line comment
+# 日本語のコメント
 
 """
 Module docstring.
@@ -38,6 +39,7 @@ complex_val = 3 + 4j
 separator = 1_000_000
 
 # --- Strings ---
+greeting = "こんにちは世界"
 single = 'single quoted'
 double = "double quoted"
 triple_single = '''

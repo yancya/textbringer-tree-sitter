@@ -1,4 +1,5 @@
 // Line comment
+// 日本語のコメント
 /* Block comment */
 /** JSDoc comment */
 
@@ -8,6 +9,7 @@ let count = 0;
 var legacy = "old style";
 
 // --- Strings ---
+const greeting = "こんにちは世界";
 const simple = "double quoted";
 const single = 'single quoted';
 const template = `Hello, ${count + 1} world!`;

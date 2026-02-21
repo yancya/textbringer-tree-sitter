@@ -233,6 +233,40 @@ class PluginIntegrationTest < Minitest::Test
     refute_empty highlight_on, "Window.highlight should call custom_highlight and produce highlights"
   end
 
+  def test_multibyte_markdown_highlight
+    skip "Markdown parser not installed" unless parser_available?(:markdown)
+    skip "tree_sitter gem not available" unless tree_sitter_available?
+
+    # Face 定義
+    Textbringer::Face.define(:keyword, foreground: "yellow")
+
+    # MarkdownMode を作成して設定
+    markdown_mode = Class.new(Textbringer::Mode) do
+      extend Textbringer::TreeSitterAdapter::ClassMethods
+    end
+    Textbringer.const_set(:TestMultibyteMode, markdown_mode)
+
+    # node_map を登録
+    Textbringer::TreeSitter::NodeMaps.register(:markdown, {
+      atx_h1_marker: :keyword,
+    })
+
+    markdown_mode.use_tree_sitter(:markdown)
+
+    mode_instance = markdown_mode.new
+    buffer = Textbringer::MockBuffer.new
+    # "# テスト\n" — "#" は 1 byte, " " は 1 byte, "テスト" は 9 bytes, "\n" は 1 byte
+    buffer.content = "# テスト\n"
+    buffer.mode = mode_instance
+    window = Textbringer::Window.new(buffer)
+
+    mode_instance.custom_highlight(window)
+
+    highlight_on = window.instance_variable_get(:@highlight_on)
+    refute_empty highlight_on, "Expected highlights for multibyte markdown"
+    assert highlight_on.key?(0), "Expected highlight at byte offset 0 for '#'"
+  end
+
   private
 
   def parser_available?(language)
@@ -247,7 +281,7 @@ class PluginIntegrationTest < Minitest::Test
   end
 
   def remove_test_modes
-    [:TestMarkdownMode, :TestMarkdownMode2, :TestExistingMode].each do |name|
+    [:TestMarkdownMode, :TestMarkdownMode2, :TestExistingMode, :TestOverwriteMode, :TestWindowMode, :TestMultibyteMode].each do |name|
       Textbringer.send(:remove_const, name) if Textbringer.const_defined?(name)
     end
   end
