@@ -1,5 +1,6 @@
 {
   "string_value": "Hello, World!",
+  "greeting_ja": "こんにちは世界",
   "escaped_string": "tab\there\nnewline\\backslash\"quote",
   "unicode_string": "\u0048\u0065\u006C\u006C\u006F",
   "empty_string": "",

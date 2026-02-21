@@ -1,9 +1,11 @@
 # YAML sample file
 # Single line comment
+# 日本語のコメント
 
 ---
 # --- Scalars ---
 string_plain: Hello World
+string_japanese: "こんにちは世界"
 string_double: "Hello, \"World\"!\nNew line\ttab"
 string_single: 'Hello, ''World''!'
 empty_string: ""
