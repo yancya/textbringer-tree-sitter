@@ -410,6 +410,70 @@ class TreeSitterAdapterTest < Minitest::Test
     refute_includes types, "root"
   end
 
+  # 親ノードが node_map にあり、子ノードも同じ face にマッピングされている場合、
+  # 子は yield されない（親の highlight 範囲を分断しないため）
+  def test_visit_node_skips_children_covered_by_same_face
+    mode = create_test_mode(:ruby)
+
+    # double_quote_scalar (string) → escape_sequence (string) のパターン
+    node_map = { parent_string: :string, child_esc: :string }
+
+    child_esc = MockNode.new("child_esc", 10, 15, [])
+    parent_string = MockNode.new("parent_string", 0, 20, [child_esc])
+
+    yielded = []
+    mode.send(:visit_node, parent_string, node_map) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    types = yielded.map(&:first)
+    # 親はマッピングされているので yield される
+    assert_includes types, "parent_string"
+    # 子は同じ face なので yield されない（親の範囲でカバー済み）
+    refute_includes types, "child_esc"
+  end
+
+  # 親ノードと子ノードが異なる face の場合は、子も yield される
+  def test_visit_node_yields_children_with_different_face
+    mode = create_test_mode(:ruby)
+
+    node_map = { parent_mod: :keyword, child_const: :constant }
+
+    child_const = MockNode.new("child_const", 7, 19, [])
+    parent_mod = MockNode.new("parent_mod", 0, 30, [child_const])
+
+    yielded = []
+    mode.send(:visit_node, parent_mod, node_map) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    types = yielded.map(&:first)
+    # 親も子も yield される（face が異なるため）
+    assert_includes types, "parent_mod"
+    assert_includes types, "child_const"
+  end
+
+  # マッピングされていないリーフノードは、親が covered でも yield される
+  # （ブロック内で node_type_to_face が nil を返すので無害）
+  def test_visit_node_yields_unmapped_leaves_inside_covered_parent
+    mode = create_test_mode(:ruby)
+
+    node_map = { parent_string: :string }
+
+    unmapped_leaf = MockNode.new("quote_char", 0, 1, [])
+    parent_string = MockNode.new("parent_string", 0, 20, [unmapped_leaf])
+
+    yielded = []
+    mode.send(:visit_node, parent_string, node_map) do |node, start_byte, end_byte|
+      yielded << [node.type, start_byte, end_byte]
+    end
+
+    types = yielded.map(&:first)
+    assert_includes types, "parent_string"
+    # マッピングされていないリーフは yield される（ブロック側でスキップされる）
+    assert_includes types, "quote_char"
+  end
+
   def test_visit_node_without_node_map_yields_only_leaves
     mode = create_test_mode(:ruby)
 

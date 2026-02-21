@@ -161,16 +161,22 @@ module Textbringer
         end
       end
 
-      def visit_node(node, node_map = nil, &block)
+      def visit_node(node, node_map = nil, covered_face: nil, &block)
+        my_face = node_map&.[](node.type.to_sym)
+
         if node.child_count == 0
-          block.call(node, node.start_byte, node.end_byte)
+          # リーフノード: 親と同じ face でカバー済みなら yield しない
+          block.call(node, node.start_byte, node.end_byte) unless my_face && my_face == covered_face
         else
-          if node_map&.key?(node.type.to_sym)
+          # 非リーフノード: node_map にあり、親と異なる face なら yield
+          if my_face && my_face != covered_face
             block.call(node, node.start_byte, node.end_byte)
           end
+          # 子へ再帰（このノードの face を伝播）
+          child_covered = my_face || covered_face
           node.child_count.times do |i|
             child = node.child(i)
-            visit_node(child, node_map, &block) if child
+            visit_node(child, node_map, covered_face: child_covered, &block) if child
           end
         end
       end
