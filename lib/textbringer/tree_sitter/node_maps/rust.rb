@@ -10,6 +10,7 @@ module Textbringer
           doc_comment
           inner_doc_comment_marker
           outer_doc_comment_marker
+          shebang
         ],
         string: %i[
           string_literal

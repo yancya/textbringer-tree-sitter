@@ -19,6 +19,7 @@ module Textbringer
           regex_flags
           escape_sequence
           html_character_reference
+          jsx_text
         ],
         keyword: %i[
           if

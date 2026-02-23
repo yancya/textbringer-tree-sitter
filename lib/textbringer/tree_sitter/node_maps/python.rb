@@ -16,6 +16,7 @@ module Textbringer
           interpolation
           format_specifier
           format_expression
+          type_conversion
         ],
         keyword: %i[
           if
@@ -93,6 +94,7 @@ module Textbringer
           chevron
           ellipsis
           line_continuation
+          positional_separator
         ],
         builtin: %i[
           true

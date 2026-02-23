@@ -8,6 +8,7 @@ module Textbringer
         comment: %i[comment],
         string: %i[
           literalString
+          literalChar
           declString
         ],
         keyword: %i[
@@ -161,6 +162,7 @@ module Textbringer
           kObjcprotocol
           kOptional
           kRequired
+          kString
         ],
         number: %i[
           literalNumber
@@ -202,8 +204,25 @@ module Textbringer
           exprBinary
           exprUnary
           assignment
+          kAdd
+          kSub
+          kMul
+          kHat
+          kAssign
+          kAssignAdd
+          kAssignDiv
+          kAssignMul
+          kAssignSub
+          kEq
+          kNeq
+          kGt
+          kGte
+          kLt
+          kLte
         ],
-        punctuation: %i[],
+        punctuation: %i[
+          kDot
+        ],
         builtin: %i[
           kTrue
           kFalse
