@@ -165,7 +165,7 @@ jobs:
         run: |
           # 最新リリースをチェック
           LATEST=$(curl -fsSL "https://api.github.com/repos/Faveod/tree-sitter-parsers/releases/latest" | jq -r '.tag_name')
-          CURRENT="v4.11"  # 現在使用しているバージョン
+          CURRENT="v5.0"  # 現在使用しているバージョン
 
           echo "latest_release=$LATEST" >> $GITHUB_OUTPUT
           echo "current_release=$CURRENT" >> $GITHUB_OUTPUT

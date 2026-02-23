@@ -51,7 +51,7 @@ else
 fi
 
 # Faveod/tree-sitter-parsers のリリースバージョン
-RELEASE_VERSION="v4.11"
+RELEASE_VERSION="v5.0"
 TARBALL_NAME="tree-sitter-parsers-${RELEASE_VERSION#v}-${FAVEOD_PLATFORM}.tar.gz"
 TARBALL_URL="https://github.com/Faveod/tree-sitter-parsers/releases/download/${RELEASE_VERSION}/${TARBALL_NAME}"
 

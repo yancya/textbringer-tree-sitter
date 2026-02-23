@@ -16,7 +16,7 @@ require_relative "../lib/textbringer/tree_sitter/language_aliases"
 require_relative "../lib/textbringer/tree_sitter/platform"
 
 module TextbringerTreeSitterCLI
-  FAVEOD_VERSION = "v4.11"
+  FAVEOD_VERSION = "v5.0"
 
   # Parsers included in the Faveod tarball
   FAVEOD_PARSERS = %w[
