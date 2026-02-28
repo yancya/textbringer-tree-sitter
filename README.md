@@ -92,6 +92,18 @@ class MyMode < ProgrammingMode
 end
 ```
 
+### Disabling Tree-sitter for Specific Modes
+
+You can disable Tree-sitter highlighting for specific modes:
+
+```ruby
+# Disable for RubyMode (falls back to default Textbringer highlighting)
+RubyMode.tree_sitter_enabled = false
+
+# Re-enable when needed
+RubyMode.tree_sitter_enabled = true
+```
+
 ## Custom Languages
 
 You can add languages not included in the gem by creating a configuration file.
