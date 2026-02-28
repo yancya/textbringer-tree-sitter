@@ -16,6 +16,7 @@ module Textbringer
     module ClassMethods
       def use_tree_sitter(language)
         @tree_sitter_language = language
+        @tree_sitter_enabled = true
 
         # Use prepend to take priority over existing custom_highlight
         prepend InstanceMethods
@@ -23,6 +24,14 @@ module Textbringer
         define_method(:tree_sitter_language) do
           language
         end
+      end
+
+      def tree_sitter_enabled=(value)
+        @tree_sitter_enabled = value
+      end
+
+      def tree_sitter_enabled?
+        @tree_sitter_enabled
       end
 
       attr_reader :tree_sitter_language
@@ -212,7 +221,8 @@ module Textbringer
       alias_method :original_highlight, :highlight
 
       def highlight
-        if @buffer&.mode.respond_to?(:custom_highlight)
+        if @buffer&.mode.respond_to?(:custom_highlight) &&
+            @buffer.mode.class.tree_sitter_enabled?
           @buffer.mode.custom_highlight(self)
         else
           original_highlight

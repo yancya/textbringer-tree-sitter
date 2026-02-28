@@ -101,6 +101,12 @@ CONFIG[:tree_sitter_enabled_features] = [:comment, :string, :keyword]
 # カスタム parser ディレクトリ
 CONFIG[:tree_sitter_parser_dir] = "/path/to/parsers"
 
+# 特定のモードで Tree-sitter ハイライトを無効化
+RubyMode.tree_sitter_enabled = false
+
+# 再度有効化も可能
+RubyMode.tree_sitter_enabled = true
+
 # カスタム NodeMap 読み込み
 require "~/.textbringer/tree_sitter/node_maps/mylang.rb"
 ```
