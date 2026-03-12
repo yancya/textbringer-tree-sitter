@@ -26,13 +26,25 @@ jobs:
       id-token: write
 
     steps:
+      - name: Check for Claude token
+        id: check-token
+        run: |
+          if [ -n "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Claude Code Review: CLAUDE_CODE_OAUTH_TOKEN not available"
+          fi
+
       - name: Checkout repository
+        if: steps.check-token.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
 
       - name: Run Claude Code Review
+        if: steps.check-token.outputs.available == 'true'
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
