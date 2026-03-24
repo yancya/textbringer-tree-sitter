@@ -31,16 +31,15 @@ class TreeSitterAdapterTest < Minitest::Test
     end
 
     mode = klass.new
-    assert mode.respond_to?(:custom_highlight)
+    assert mode.respond_to?(:highlight)
     assert mode.respond_to?(:tree_sitter_language)
   end
 
-  # custom_highlight initialization
+  # highlight initialization
   def test_custom_highlight_initializes_highlight_hashes
-    mode = create_test_mode(:ruby)
     window = Textbringer::Window.new
 
-    mode.custom_highlight(window)
+    window.highlight
 
     assert_kind_of Hash, window.highlight_on
     assert_kind_of Hash, window.highlight_off
@@ -48,25 +47,31 @@ class TreeSitterAdapterTest < Minitest::Test
 
   # Early return when colors are disabled
   def test_custom_highlight_returns_early_when_colors_disabled
-    Textbringer::CONFIG[:colors] = false
+    Textbringer::Window.has_colors = false
 
     mode = create_test_mode(:ruby)
-    window = Textbringer::Window.new
+    buffer = Textbringer::MockBuffer.new
+    buffer.mode = mode
+    window = Textbringer::Window.new(buffer)
 
     # Verify it completes without error
-    mode.custom_highlight(window)
+    window.highlight
 
     assert_equal({}, window.highlight_on)
+  ensure
+    Textbringer::Window.has_colors = true
   end
 
   def test_custom_highlight_works_when_colors_enabled
-    Textbringer::CONFIG[:colors] = true
+    Textbringer::Window.has_colors = true
 
     mode = create_test_mode(:ruby)
-    window = Textbringer::Window.new
+    buffer = Textbringer::MockBuffer.new
+    buffer.mode = mode
+    window = Textbringer::Window.new(buffer)
 
     # Should not raise even without a parser
-    mode.custom_highlight(window)
+    window.highlight
 
     # No highlights since there is no parser
     assert_kind_of Hash, window.highlight_on
@@ -78,9 +83,11 @@ class TreeSitterAdapterTest < Minitest::Test
     Textbringer::CONFIG[:syntax_highlight] = false
 
     mode = create_test_mode(:ruby)
-    window = Textbringer::Window.new
+    buffer = Textbringer::MockBuffer.new
+    buffer.mode = mode
+    window = Textbringer::Window.new(buffer)
 
-    mode.custom_highlight(window)
+    window.highlight
 
     assert_equal({}, window.highlight_on)
   end
@@ -199,9 +206,10 @@ class TreeSitterAdapterTest < Minitest::Test
     assert_equal :function_name, mode.send(:node_type_to_face, :function_call)
   end
 
-  # Verify Window monkey-patch
-  def test_window_has_highlight_method
-    assert Textbringer::Window.method_defined?(:highlight)
+  # Verify Mode has highlight method
+  def test_mode_has_highlight_method
+    mode = create_test_mode(:ruby)
+    assert mode.respond_to?(:highlight)
   end
 
   # --- Cache-related tests ---
@@ -320,10 +328,10 @@ class TreeSitterAdapterTest < Minitest::Test
     buffer.mode = mode
     window = Textbringer::Window.new(buffer)
 
-    mode.custom_highlight(window)
+    window.highlight
 
-    highlight_on = window.instance_variable_get(:@highlight_on)
-    highlight_off = window.instance_variable_get(:@highlight_off)
+    highlight_on = window.highlight_on
+    highlight_off = window.highlight_off
 
     # There should be highlights for the comment
     refute_empty highlight_on, "Expected highlights for multibyte comment"

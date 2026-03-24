@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   spec.bindir = "exe"
   spec.executables = ["textbringer-tree-sitter"]
 
-  spec.add_dependency "textbringer", ">= 22"
+  spec.add_dependency "textbringer", ">= 25"
   spec.add_dependency "ruby_tree_sitter", "~> 2.0"
 
   spec.add_development_dependency "rake", "~> 13.0"

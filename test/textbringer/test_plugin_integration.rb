@@ -91,11 +91,11 @@ class PluginIntegrationTest < Minitest::Test
     buffer.mode = mode_instance
     window = Textbringer::Window.new(buffer)
 
-    # Call custom_highlight
-    mode_instance.custom_highlight(window)
+    # Call highlight via window (which calls mode.highlight(ctx))
+    window.highlight
 
     # Check if highlights were generated
-    highlight_on = window.instance_variable_get(:@highlight_on)
+    highlight_on = window.highlight_on
     refute_empty highlight_on, "Expected highlights to be generated"
 
     # There should be a highlight at position 0 (position of '#')
@@ -149,7 +149,7 @@ class PluginIntegrationTest < Minitest::Test
     assert_equal :markdown, existing_mode.tree_sitter_language
   end
 
-  def test_existing_custom_highlight_gets_overwritten
+  def test_existing_highlight_gets_overridden
     skip "Markdown parser not installed" unless parser_available?(:markdown)
     skip "tree_sitter gem not available" unless tree_sitter_available?
 
@@ -161,11 +161,11 @@ class PluginIntegrationTest < Minitest::Test
       atx_h1_marker: :keyword,
     })
 
-    # Simulate a Mode with an existing custom_highlight
+    # Simulate a Mode with an existing highlight method
     existing_mode = Class.new(Textbringer::Mode) do
-      def custom_highlight(window)
-        # No-op (simulating textbringer-markdown behavior)
-        window.instance_variable_set(:@highlight_on, { existing: true })
+      def highlight(ctx)
+        # No-op (simulating another mode's behavior)
+        ctx.instance_variable_get(:@highlight_on)[:existing] = true
       end
     end
     Textbringer.const_set(:TestOverwriteMode, existing_mode)
@@ -183,18 +183,18 @@ class PluginIntegrationTest < Minitest::Test
     buffer.mode = mode_instance
     window = Textbringer::Window.new(buffer)
 
-    # Call custom_highlight
-    mode_instance.custom_highlight(window)
+    # Call highlight via window
+    window.highlight
 
-    highlight_on = window.instance_variable_get(:@highlight_on)
+    highlight_on = window.highlight_on
 
-    # Verify TreeSitterAdapter's custom_highlight takes precedence
-    # (if the existing custom_highlight were called, it would be { existing: true })
-    refute highlight_on[:existing], "TreeSitterAdapter's custom_highlight should override existing one"
-    assert highlight_on.key?(0), "TreeSitterAdapter's custom_highlight should produce highlights at position 0"
+    # Verify TreeSitterAdapter's highlight takes precedence
+    # (if the existing highlight were called, it would have { existing: true })
+    refute highlight_on[:existing], "TreeSitterAdapter's highlight should override existing one"
+    assert highlight_on.key?(0), "TreeSitterAdapter's highlight should produce highlights at position 0"
   end
 
-  def test_window_highlight_calls_custom_highlight
+  def test_window_highlight_calls_mode_highlight
     skip "Markdown parser not installed" unless parser_available?(:markdown)
     skip "tree_sitter gem not available" unless tree_sitter_available?
 
@@ -216,8 +216,8 @@ class PluginIntegrationTest < Minitest::Test
     # Create instance
     mode_instance = markdown_mode.new
 
-    # Verify custom_highlight is defined
-    assert mode_instance.respond_to?(:custom_highlight), "Mode should have custom_highlight method"
+    # Verify highlight is defined
+    assert mode_instance.respond_to?(:highlight), "Mode should have highlight method"
 
     # Prepare buffer and window
     buffer = Textbringer::MockBuffer.new
@@ -225,12 +225,12 @@ class PluginIntegrationTest < Minitest::Test
     buffer.mode = mode_instance
     window = Textbringer::Window.new(buffer)
 
-    # Call Window.highlight (should invoke custom_highlight via monkey-patch)
+    # Call Window.highlight (should invoke mode.highlight(ctx))
     window.highlight
 
     # Check if highlights were generated
-    highlight_on = window.instance_variable_get(:@highlight_on)
-    refute_empty highlight_on, "Window.highlight should call custom_highlight and produce highlights"
+    highlight_on = window.highlight_on
+    refute_empty highlight_on, "Window.highlight should call mode.highlight and produce highlights"
   end
 
   def test_multibyte_markdown_highlight
@@ -260,9 +260,9 @@ class PluginIntegrationTest < Minitest::Test
     buffer.mode = mode_instance
     window = Textbringer::Window.new(buffer)
 
-    mode_instance.custom_highlight(window)
+    window.highlight
 
-    highlight_on = window.instance_variable_get(:@highlight_on)
+    highlight_on = window.highlight_on
     refute_empty highlight_on, "Expected highlights for multibyte markdown"
     assert highlight_on.key?(0), "Expected highlight at byte offset 0 for '#'"
   end

@@ -42,16 +42,14 @@ module Textbringer
     end
 
     module InstanceMethods
-      def custom_highlight(window)
-        window.instance_variable_set(:@highlight_on, {})
-        window.instance_variable_set(:@highlight_off, {})
+      def highlight(ctx)
+        return super(ctx) unless self.class.tree_sitter_enabled?
 
         return unless can_highlight?
 
         parser = get_parser
         return unless parser
 
-        buffer = window.buffer
         # Same logic as textbringer core: use base_pos as the reference point
         base_pos = buffer.point_min
         buffer_text = buffer.to_s
@@ -72,26 +70,15 @@ module Textbringer
           end
         end
 
-        highlight_on = {}
-        highlight_off = {}
-
         node_map = TreeSitter::NodeMaps.for(tree_sitter_language)
         visit_node(tree.root_node, node_map) do |node, start_byte, end_byte|
-          face = node_type_to_face(node.type.to_sym)
+          face_name = node_type_to_face(node.type.to_sym)
+          next unless face_name
+          face = Face[face_name]
           next unless face
 
-          face = Face[face]
-          if face
-            # Both Tree-sitter and Textbringer use byte offsets
-            highlight_on[base_pos + start_byte] = face
-            highlight_off[base_pos + end_byte] = true
-
-            if TreeSitterAdapter.debug? && highlight_on.size <= 5
-              File.open("/tmp/tree_sitter_debug.log", "a") do |f|
-                f.puts "  #{node.type} pos=#{base_pos + start_byte}-#{base_pos + end_byte} face=#{face}"
-              end
-            end
-          end
+          # Both Tree-sitter and Textbringer use byte offsets
+          ctx.highlight(base_pos + start_byte, base_pos + end_byte, face)
         end
 
         if TreeSitterAdapter.debug?
@@ -99,9 +86,6 @@ module Textbringer
             f.puts "  total_highlights=#{highlight_on.size}"
           end
         end
-
-        window.instance_variable_set(:@highlight_on, highlight_on)
-        window.instance_variable_set(:@highlight_off, highlight_off)
       end
 
       private
@@ -212,22 +196,6 @@ module Textbringer
         HIGHLIGHT_LEVELS.take(level).flatten
       end
 
-    end
-  end
-
-  # Window monkey-patch
-  class Window
-    unless method_defined?(:original_highlight)
-      alias_method :original_highlight, :highlight
-
-      def highlight
-        if @buffer&.mode.respond_to?(:custom_highlight) &&
-            @buffer.mode.class.tree_sitter_enabled?
-          @buffer.mode.custom_highlight(self)
-        else
-          original_highlight
-        end
-      end
     end
   end
 end

@@ -79,26 +79,23 @@ class MarkdownIntegrationTest < Minitest::Test
     # Create instance
     mode = markdown_mode_class.new
 
-    # Prepare buffer and window
+    # Prepare buffer and highlight context
     buffer = Textbringer::MockBuffer.new
     buffer.content = "# Hello World\n\nThis is a test.\n"
     buffer.mode = mode
-    window = Textbringer::Window.new(buffer)
+    ctx = Textbringer::HighlightContext.new(
+      buffer: buffer,
+      highlight_start: 0,
+      highlight_end: buffer.to_s.bytesize,
+      highlight_on: {},
+      highlight_off: {}
+    )
 
-    # Call custom_highlight
-    mode.custom_highlight(window)
-
-    # Check if highlights were generated
-    highlight_on = window.instance_variable_get(:@highlight_on)
-    highlight_off = window.instance_variable_get(:@highlight_off)
-
-    # Debug output
-    puts "\n=== Markdown Highlight Debug ==="
-    puts "highlight_on keys: #{highlight_on.keys.inspect}"
-    puts "highlight_off keys: #{highlight_off.keys.inspect}"
+    # Call highlight
+    buffer.mode.highlight(ctx)
 
     # At least something should be highlighted
-    refute_empty highlight_on, "Expected some highlights to be generated"
+    refute_empty ctx.highlight_on, "Expected some highlights to be generated"
   end
 
   def test_markdown_heading_is_highlighted
@@ -125,14 +122,18 @@ class MarkdownIntegrationTest < Minitest::Test
     buffer = Textbringer::MockBuffer.new
     buffer.content = "# Hello\n"
     buffer.mode = mode
-    window = Textbringer::Window.new(buffer)
+    ctx = Textbringer::HighlightContext.new(
+      buffer: buffer,
+      highlight_start: 0,
+      highlight_end: buffer.to_s.bytesize,
+      highlight_on: {},
+      highlight_off: {}
+    )
 
-    mode.custom_highlight(window)
-
-    highlight_on = window.instance_variable_get(:@highlight_on)
+    buffer.mode.highlight(ctx)
 
     # There should be a highlight at position 0 (start of '#')
-    assert highlight_on.key?(0), "Expected highlight at position 0 for '#'. Got: #{highlight_on.inspect}"
+    assert ctx.highlight_on.key?(0), "Expected highlight at position 0 for '#'. Got: #{ctx.highlight_on.inspect}"
   end
 
   private
