@@ -18,7 +18,7 @@ module Textbringer
         @tree_sitter_language = language
         @tree_sitter_enabled = true
 
-        # Use prepend to take priority over existing custom_highlight
+        # Use prepend to take priority over existing highlight
         prepend InstanceMethods
 
         define_method(:tree_sitter_language) do
@@ -64,12 +64,13 @@ module Textbringer
 
         if TreeSitterAdapter.debug?
           File.open("/tmp/tree_sitter_debug.log", "a") do |f|
-            f.puts "[#{Time.now}] custom_highlight"
+            f.puts "[#{Time.now}] highlight"
             f.puts "  base_pos=#{base_pos} buffer.bytesize=#{buffer_text.bytesize}"
             f.puts "  incremental_parse=#{!old_tree.nil?}"
           end
         end
 
+        highlight_count = 0
         node_map = TreeSitter::NodeMaps.for(tree_sitter_language)
         visit_node(tree.root_node, node_map) do |node, start_byte, end_byte|
           face_name = node_type_to_face(node.type.to_sym)
@@ -79,11 +80,12 @@ module Textbringer
 
           # Both Tree-sitter and Textbringer use byte offsets
           ctx.highlight(base_pos + start_byte, base_pos + end_byte, face)
+          highlight_count += 1
         end
 
         if TreeSitterAdapter.debug?
           File.open("/tmp/tree_sitter_debug.log", "a") do |f|
-            f.puts "  total_highlights=#{highlight_on.size}"
+            f.puts "  total_highlights=#{highlight_count}"
           end
         end
       end
