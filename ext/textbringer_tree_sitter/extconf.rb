@@ -26,7 +26,7 @@ def dylib_ext
 end
 
 PARSER_DIR = File.expand_path("~/.textbringer/parsers/#{platform}")
-FAVEOD_VERSION = "v5.0"
+FAVEOD_VERSION = "v5.2"
 CHECKSUMS_FILE = File.expand_path("~/.textbringer/parsers/checksums.json")
 
 # 自動インストールする言語
