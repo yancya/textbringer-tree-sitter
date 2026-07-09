@@ -39,7 +39,7 @@ faveod_platform() {
 }
 
 FAVEOD_PLATFORM=$(faveod_platform)
-FAVEOD_VERSION="v5.2"
+FAVEOD_VERSION="v5.5"
 
 echo "Building parsers for $PLATFORM..."
 
