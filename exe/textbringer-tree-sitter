@@ -14,6 +14,7 @@ require "zlib"
 # Load LanguageAliases for normalization
 require_relative "../lib/textbringer/tree_sitter/language_aliases"
 require_relative "../lib/textbringer/tree_sitter/platform"
+require_relative "../lib/textbringer/tree_sitter/node_maps"
 
 module TextbringerTreeSitterCLI
   FAVEOD_VERSION = "v5.0"
@@ -850,6 +851,145 @@ module TextbringerTreeSitterCLI
       true
     end
 
+    def human_size(bytes)
+      return "#{bytes} B" if bytes < 1024
+
+      "%.1f KB" % (bytes / 1024.0)
+    end
+
+    def doctor_check_parser(language, config)
+      normalized = Textbringer::TreeSitter::LanguageAliases.normalize(language)
+      filename = "libtree-sitter-#{normalized}#{dylib_ext}"
+      path = File.join(parser_dir, filename)
+      lines = []
+      problem = false
+
+      unless File.exist?(path)
+        return ["  [ ] #{normalized.ljust(20)} not installed", false]
+      end
+
+      stat = File.stat(path)
+      lines << "  [✓] #{normalized.ljust(20)} #{human_size(stat.size)}, mtime=#{stat.mtime.strftime('%Y-%m-%d %H:%M')}"
+
+      begin
+        require "tree_sitter"
+        ts_lang = ::TreeSitter::Language.load(lang_for_load(normalized), path)
+        version = ts_lang.version
+        min = ::TreeSitter::MIN_COMPATIBLE_LANGUAGE_VERSION
+        max = ::TreeSitter::LANGUAGE_VERSION
+        if version < min || version > max
+          lines << "      warning: LANGUAGE_VERSION #{version} outside supported range #{min}..#{max}"
+          problem = true
+        end
+      rescue LoadError, ::TreeSitter::TreeSitterError, ::TreeSitter::LanguageLoadError => e
+        lines << "      warning: failed to load parser: #{e.message}"
+        problem = true
+      end
+
+      has_node_map = Textbringer::TreeSitter::NodeMaps.available_languages.include?(normalized.to_sym)
+      user_map_path = File.join(node_map_dir, "#{lang_for_load(normalized)}.rb")
+      if has_node_map
+        lines << "      node map: bundled default"
+      elsif File.exist?(user_map_path)
+        lines << "      node map: user-defined (#{user_map_path})"
+      else
+        lines << "      warning: no node map registered (missing node map)"
+        problem = true
+      end
+
+      [lines.join("\n"), problem]
+    end
+
+    def lang_for_load(normalized)
+      normalized.tr("-", "_")
+    end
+
+    def doctor_check_checksums
+      checksums = load_checksums
+      return ["  (none recorded yet -- checksums are recorded per download URL the first time it's fetched)", false] if checksums.empty?
+
+      # checksums.json is keyed by download URL, not by installed file, so this can only
+      # report what has been recorded from past downloads -- it does not re-verify the
+      # currently installed parser files against anything (verify_checksum does that at
+      # download time instead).
+      lines = checksums.map do |url, expected|
+        digest = expected.is_a?(String) ? "#{expected[0..15]}..." : expected.inspect
+        "  #{url} -> #{digest}"
+      end
+      [lines.join("\n"), false]
+    end
+
+    def doctor_check_upstream_release(current)
+      latest = URI.open(
+        "https://api.github.com/repos/Faveod/tree-sitter-parsers/releases/latest",
+        open_timeout: 5, read_timeout: 5
+      ) { |f|
+        JSON.parse(f.read)["tag_name"]
+      }
+      if latest == current
+        ["  Faveod/tree-sitter-parsers: up to date (#{current})", false]
+      else
+        ["  Faveod/tree-sitter-parsers: #{current} installed, #{latest} available", false]
+      end
+    rescue => e
+      ["  Faveod/tree-sitter-parsers: could not check upstream release (#{e.message})", false]
+    end
+
+    def compute_doctor_report(check_upstream:)
+      problems = false
+      out = []
+
+      out << "=== textbringer-tree-sitter doctor ==="
+      out << ""
+      out << "Platform: #{platform} (Faveod: #{faveod_platform})"
+      out << "Parser directory: #{parser_dir}"
+      out << "  (override with CONFIG[:tree_sitter_parser_dir] in ~/.textbringer.rb)"
+      out << ""
+
+      out << "Installed parsers:"
+      languages = all_languages
+      if languages.empty?
+        out << "  (no languages configured)"
+      else
+        languages.sort.each do |lang, config|
+          line, problem = doctor_check_parser(lang, config)
+          out << line
+          problems ||= problem
+        end
+      end
+      out << ""
+
+      out << "Checksums (#{checksums_file}):"
+      line, problem = doctor_check_checksums
+      out << line
+      problems ||= problem
+      out << ""
+
+      if check_upstream
+        out << "Upstream release check:"
+        line, problem = doctor_check_upstream_release(FAVEOD_VERSION)
+        out << line
+        problems ||= problem
+        out << ""
+      end
+
+      out << (problems ? "Result: problems found (see warnings above)" : "Result: OK")
+
+      [out.join("\n"), problems]
+    end
+
+    def doctor_report(check_upstream: true)
+      compute_doctor_report(check_upstream: check_upstream).first
+    end
+
+    def doctor(strict: false, check_upstream: true)
+      report, had_problems = compute_doctor_report(check_upstream: check_upstream)
+      puts report
+      return true unless strict
+
+      !had_problems
+    end
+
     def show_help
       puts <<~HELP
         textbringer-tree-sitter - Parser manager for textbringer-tree-sitter
@@ -862,6 +1002,8 @@ module TextbringerTreeSitterCLI
           textbringer-tree-sitter generate-map <lang> (Re)generate node_map for installed parser
           textbringer-tree-sitter init                Create user config file for custom languages
           textbringer-tree-sitter path                Show parser directory
+          textbringer-tree-sitter doctor               Diagnose parser dir, installed parsers, node maps
+          textbringer-tree-sitter doctor --strict      Same, but exit non-zero if problems are found
 
         Examples:
           textbringer-tree-sitter get markdown        Build parser + generate node_map
@@ -918,6 +1060,10 @@ module TextbringerTreeSitterCLI
         exit(success ? 0 : 1)
       when "path"
         puts parser_dir
+      when "doctor"
+        strict = args.include?("--strict")
+        ok = doctor(strict: strict)
+        exit(ok ? 0 : 1)
       when "help", "--help", "-h", nil
         show_help
       else
