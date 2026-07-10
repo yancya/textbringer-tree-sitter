@@ -144,10 +144,13 @@ module Textbringer
           return nil unless defined?(::TreeSitter)
 
           parser_path = TreeSitterConfig.parser_path(tree_sitter_language)
-          # Normalize language name for TreeSitter::Language.load
+          # Normalize for the file path (may keep hyphens, e.g. "embedded-template"),
+          # then replace hyphens with underscores for the exported C symbol name
+          # (tree_sitter_<name>) -- mirrors ruby_tree_sitter's own TreeSitter.language
+          # convenience method, which does the same before calling Language.load.
           normalized = TreeSitter::LanguageAliases.normalize(tree_sitter_language)
           language = ::TreeSitter::Language.load(
-            normalized,
+            normalized.tr("-", "_"),
             parser_path
           )
 
@@ -227,7 +230,14 @@ module Textbringer
       end
 
       def highlight_single_injection(ctx, host_node, entry, source, base_pos)
-        content_node = find_child_by_type(host_node, entry[:content])
+        # entry[:content] == entry[:node_type] means "inject this node
+        # itself" (e.g. ERB's :content nodes, which are plain text leaves,
+        # not a wrapper around a separate content child).
+        content_node = if entry[:content] == entry[:node_type]
+                          host_node
+                        else
+                          find_child_by_type(host_node, entry[:content])
+                        end
         return unless content_node
 
         language = resolve_injection_language(entry[:language], host_node, source)
@@ -282,7 +292,7 @@ module Textbringer
 
         parser_path = TreeSitterConfig.parser_path(language)
         normalized = TreeSitter::LanguageAliases.normalize(language)
-        ts_language = ::TreeSitter::Language.load(normalized, parser_path)
+        ts_language = ::TreeSitter::Language.load(normalized.tr("-", "_"), parser_path)
 
         parser = ::TreeSitter::Parser.new
         parser.language = ts_language

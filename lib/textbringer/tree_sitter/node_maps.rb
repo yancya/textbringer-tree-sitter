@@ -9,6 +9,7 @@ require_relative "node_maps/csharp"
 require_relative "node_maps/cobol"
 require_relative "node_maps/crystal"
 require_relative "node_maps/elixir"
+require_relative "node_maps/embedded_template"
 require_relative "node_maps/groovy"
 require_relative "node_maps/haml"
 require_relative "node_maps/html"
@@ -71,6 +72,7 @@ module Textbringer
             cobol: COBOL,
             crystal: CRYSTAL,
             elixir: ELIXIR,
+            :"embedded-template" => EMBEDDED_TEMPLATE,
             groovy: GROOVY,
             haml: HAML,
             html: HTML,
