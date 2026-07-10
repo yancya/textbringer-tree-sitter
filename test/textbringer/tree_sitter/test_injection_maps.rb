@@ -13,14 +13,14 @@ class InjectionMapsTest < Minitest::Test
   end
 
   def test_for_returns_nil_when_nothing_registered
-    assert_nil Textbringer::TreeSitter::InjectionMaps.for(:ruby)
+    assert_nil Textbringer::TreeSitter::InjectionMaps.for(:custom_lang)
   end
 
   def test_register_and_for_roundtrip
     entries = [{ node_type: :heredoc_body, content: :heredoc_content, language: :sql }]
-    Textbringer::TreeSitter::InjectionMaps.register(:ruby, entries)
+    Textbringer::TreeSitter::InjectionMaps.register(:custom_lang, entries)
 
-    assert_equal entries, Textbringer::TreeSitter::InjectionMaps.for(:ruby)
+    assert_equal entries, Textbringer::TreeSitter::InjectionMaps.for(:custom_lang)
   end
 
   def test_register_normalizes_language_aliases
@@ -34,16 +34,30 @@ class InjectionMapsTest < Minitest::Test
   def test_for_accepts_proc_language_resolver
     resolver = ->(node, source) { :sql }
     entries = [{ node_type: :heredoc_body, content: :heredoc_content, language: resolver }]
-    Textbringer::TreeSitter::InjectionMaps.register(:ruby, entries)
+    Textbringer::TreeSitter::InjectionMaps.register(:custom_lang, entries)
 
-    got = Textbringer::TreeSitter::InjectionMaps.for(:ruby)
+    got = Textbringer::TreeSitter::InjectionMaps.for(:custom_lang)
     assert_equal :sql, got.first[:language].call(nil, nil)
   end
 
-  def test_clear_removes_all_registrations
-    Textbringer::TreeSitter::InjectionMaps.register(:ruby, [{ node_type: :a, content: :b, language: :sql }])
+  def test_clear_removes_custom_registrations
+    Textbringer::TreeSitter::InjectionMaps.register(:custom_lang, [{ node_type: :a, content: :b, language: :sql }])
     Textbringer::TreeSitter::InjectionMaps.clear
 
-    assert_nil Textbringer::TreeSitter::InjectionMaps.for(:ruby)
+    assert_nil Textbringer::TreeSitter::InjectionMaps.for(:custom_lang)
+  end
+
+  def test_clear_does_not_remove_bundled_defaults
+    Textbringer::TreeSitter::InjectionMaps.clear
+
+    refute_nil Textbringer::TreeSitter::InjectionMaps.for(:ruby)
+  end
+
+  def test_custom_registration_is_combined_with_bundled_defaults
+    Textbringer::TreeSitter::InjectionMaps.register(:ruby, [{ node_type: :c, content: :d, language: :html }])
+
+    result = Textbringer::TreeSitter::InjectionMaps.for(:ruby)
+    assert_includes result.map { |e| e[:node_type] }, :heredoc_body
+    assert_includes result.map { |e| e[:node_type] }, :c
   end
 end
