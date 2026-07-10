@@ -12,6 +12,7 @@ class TestBumpFaveodVersion < Minitest::Test
     ext/textbringer_tree_sitter/extconf.rb
     scripts/build_parsers.sh
     scripts/download_parsers.sh
+    exe/textbringer-tree-sitter
   ].freeze
 
   def setup

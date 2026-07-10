@@ -192,7 +192,8 @@ jobs:
           git add .github/workflows/sync-upstream.yml \
             ext/textbringer_tree_sitter/extconf.rb \
             scripts/build_parsers.sh \
-            scripts/download_parsers.sh
+            scripts/download_parsers.sh \
+            exe/textbringer-tree-sitter
           git commit -m "chore: Bump Faveod/tree-sitter-parsers to ${LATEST}"
           git push -f origin "$BRANCH"
 

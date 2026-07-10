@@ -15,6 +15,7 @@ FILES=(
   "ext/textbringer_tree_sitter/extconf.rb"
   "scripts/build_parsers.sh"
   "scripts/download_parsers.sh"
+  "exe/textbringer-tree-sitter"
 )
 
 for f in "${FILES[@]}"; do
@@ -28,6 +29,7 @@ sed -i.bak -E "s/CURRENT=\"v[0-9]+\.[0-9]+(\.[0-9]+)?\"/CURRENT=\"${NEW_VERSION}
 sed -i.bak -E "s/FAVEOD_VERSION = \"v[0-9]+\.[0-9]+(\.[0-9]+)?\"/FAVEOD_VERSION = \"${NEW_VERSION}\"/" "ext/textbringer_tree_sitter/extconf.rb"
 sed -i.bak -E "s/FAVEOD_VERSION=\"v[0-9]+\.[0-9]+(\.[0-9]+)?\"/FAVEOD_VERSION=\"${NEW_VERSION}\"/" "scripts/build_parsers.sh"
 sed -i.bak -E "s/RELEASE_VERSION=\"v[0-9]+\.[0-9]+(\.[0-9]+)?\"/RELEASE_VERSION=\"${NEW_VERSION}\"/" "scripts/download_parsers.sh"
+sed -i.bak -E "s/FAVEOD_VERSION = \"v[0-9]+\.[0-9]+(\.[0-9]+)?\"/FAVEOD_VERSION = \"${NEW_VERSION}\"/" "exe/textbringer-tree-sitter"
 
 for f in "${FILES[@]}"; do
   rm -f "${f}.bak"
