@@ -8,7 +8,7 @@ module Textbringer
     # Emacs-style 4-level highlighting
     HIGHLIGHT_LEVELS = [
       %i[comment string],                    # Level 1: minimal
-      %i[keyword type constant],             # Level 2: basic
+      %i[keyword type constant property],    # Level 2: basic
       %i[function_name variable number],     # Level 3: standard (default)
       %i[operator punctuation builtin]       # Level 4: everything
     ].freeze
