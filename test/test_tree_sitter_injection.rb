@@ -28,11 +28,15 @@ end
 FakeTree = Struct.new(:root_node)
 
 class FakeParser
+  attr_reader :call_count
+
   def initialize(tree)
     @tree = tree
+    @call_count = 0
   end
 
   def parse_string(_old_tree, _text)
+    @call_count += 1
     @tree
   end
 end
@@ -310,5 +314,60 @@ class TestTreeSitterInjection < Minitest::Test
 
     assert_equal Textbringer::Face[:keyword], ctx.highlight_on[5]
     assert_equal true, ctx.highlight_off[15]
+  end
+
+  def test_unchanged_injected_content_is_not_reparsed
+    Textbringer::TreeSitter::InjectionMaps.register(:ruby, sql_injection_map)
+    Textbringer::TreeSitter::NodeMaps.register(:sql, { select_kw: :keyword })
+
+    inner_text = "select_kw"
+    content = content_node(10, inner_text)
+    root = host_root(content)
+    fake_parser = FakeParser.new(FakeTree.new(FakeNode.new(:select_kw, 0, inner_text.bytesize)))
+    @mode.define_singleton_method(:get_injected_parser) { |_lang| fake_parser }
+
+    source = " " * 100
+    @mode.send(:highlight_injections, ctx_for(source), root, source, 0)
+    @mode.send(:highlight_injections, ctx_for(source), root, source, 0)
+
+    assert_equal 1, fake_parser.call_count
+  end
+
+  def test_changed_injected_content_is_reparsed
+    Textbringer::TreeSitter::InjectionMaps.register(:ruby, sql_injection_map)
+    Textbringer::TreeSitter::NodeMaps.register(:sql, { select_kw: :keyword })
+
+    fake_parser = FakeParser.new(FakeTree.new(FakeNode.new(:select_kw, 0, 9)))
+    @mode.define_singleton_method(:get_injected_parser) { |_lang| fake_parser }
+
+    prefix = " " * 10
+    content1 = content_node(10, "select_kw")
+    source1 = prefix + "select_kw" + (" " * 81)
+    @mode.send(:highlight_injections, ctx_for(source1), host_root(content1), source1, 0)
+
+    content2 = content_node(10, "update_kw")
+    source2 = prefix + "update_kw" + (" " * 81)
+    @mode.send(:highlight_injections, ctx_for(source2), host_root(content2), source2, 0)
+
+    assert_equal 2, fake_parser.call_count
+  end
+
+  def test_injected_tree_cache_is_bounded
+    Textbringer::TreeSitter::InjectionMaps.register(:ruby, sql_injection_map)
+    Textbringer::TreeSitter::NodeMaps.register(:sql, { select_kw: :keyword })
+
+    fake_parser = FakeParser.new(FakeTree.new(FakeNode.new(:select_kw, 0, 3)))
+    @mode.define_singleton_method(:get_injected_parser) { |_lang| fake_parser }
+
+    source = " " * 200
+    20.times do |i|
+      text = "kw#{i}"
+      content = content_node(10, text)
+      @mode.send(:highlight_injections, ctx_for(source), host_root(content), source, 0)
+    end
+
+    cache = @mode.instance_variable_get(:@injected_tree_cache)
+    refute_nil cache
+    assert_operator cache.size, :<=, 10
   end
 end

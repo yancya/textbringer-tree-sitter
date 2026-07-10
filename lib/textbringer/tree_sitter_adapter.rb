@@ -249,7 +249,11 @@ module Textbringer
         text = source.byteslice(content_node.start_byte, content_node.end_byte - content_node.start_byte)
         return unless text
 
-        injected_tree = parser.parse_string(nil, text)
+        injected_tree = get_cached_injected_tree(language, text) || begin
+          parsed = parser.parse_string(nil, text)
+          cache_injected_tree(language, text, parsed) if parsed
+          parsed
+        end
         return unless injected_tree
 
         node_map = TreeSitter::NodeMaps.for(language)
@@ -277,6 +281,32 @@ module Textbringer
 
       def resolve_injection_language(language_spec, host_node, source)
         language_spec.respond_to?(:call) ? language_spec.call(host_node, source) : language_spec
+      end
+
+      # Caches parsed injected-content trees keyed by (language, content
+      # hash), LRU-capped like the primary tree cache (get_cached_tree/
+      # cache_tree above), so an unchanged injected region is never
+      # reparsed on subsequent highlight passes.
+      def get_cached_injected_tree(language, text)
+        @injected_tree_cache ||= {}
+        key = [language, text.hash]
+        entry = @injected_tree_cache[key]
+        return nil unless entry
+
+        # LRU refresh: delete and re-insert to move to the end
+        @injected_tree_cache.delete(key)
+        @injected_tree_cache[key] = entry
+        entry
+      end
+
+      def cache_injected_tree(language, text, tree)
+        @injected_tree_cache ||= {}
+        key = [language, text.hash]
+
+        @injected_tree_cache.delete(key)
+        @injected_tree_cache[key] = tree
+
+        @injected_tree_cache.shift if @injected_tree_cache.size > 10
       end
 
       def get_injected_parser(language)
