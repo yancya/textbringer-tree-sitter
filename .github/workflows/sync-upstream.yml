@@ -85,8 +85,16 @@ jobs:
             # 現在の NodeMaps から定義済みノードを抽出
             node_map_file="lib/textbringer/tree_sitter/node_maps/${lang}.rb"
             if [[ -f "$node_map_file" ]]; then
-              # NodeMap の %i[...] からノードシンボルを抽出（defined? なども含める）
-              current_nodes=$(ruby -e 'content = File.read(ARGV[0], encoding: "UTF-8"); puts content.scan(/%i\[(.*?)\]/m).flat_map { |m| m[0].split(/\s+/) }.reject(&:empty?).uniq.sort' "$node_map_file")
+              # %i[...] の定義済みシンボルに加え、過去の実行で追記済みの
+              # "# NEW in ..." コメント提案（未昇格分）も「既知」として扱う。
+              # そうしないと、人間が %i[...] に昇格させるまで毎回同じ提案が
+              # 重複して積み上がってしまう。
+              current_nodes=$(ruby -e '
+                content = File.read(ARGV[0], encoding: "UTF-8")
+                mapped = content.scan(/%i\[(.*?)\]/m).flat_map { |m| m[0].split(/\s+/) }
+                suggested = content.scan(/^#\s+(\S+)\s*(?:=>|\()/).flatten
+                puts (mapped + suggested).reject(&:empty?).uniq.sort
+              ' "$node_map_file")
 
               # 差分を計算（upstream にあって current にないもの）
               new_nodes=$(comm -23 <(echo "$upstream_nodes") <(echo "$current_nodes") | grep -v '^$' || true)
@@ -95,6 +103,8 @@ jobs:
                 HAS_NEW_NODES="true"
                 count=$(echo "$new_nodes" | wc -l | tr -d ' ')
                 REPORT="${REPORT}\n### ${lang}\n\n${count} new node types found:\n\`\`\`\n${new_nodes}\n\`\`\`\n"
+                # 言語ごとの新規ノード一覧を保存（PR 作成ステップで利用）
+                echo "$new_nodes" > "tmp/grammars/${lang}-new-nodes.txt"
               fi
             fi
           done
@@ -107,8 +117,59 @@ jobs:
             echo "report_file=tmp/report.md" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Issue for new node types
+      - name: Append node-map suggestions and open PR
         if: steps.check.outputs.has_new_nodes == 'true'
+        id: node-map-pr
+        continue-on-error: true
+        run: |
+          RELEASE="auto-$(date +%Y-%m-%d)"
+          BRANCH="auto/node-map-sync"
+
+          for f in tmp/grammars/*-new-nodes.txt; do
+            [[ -f "$f" ]] || continue
+            lang="$(basename "$f" -new-nodes.txt)"
+            nodes=()
+            while IFS= read -r line; do
+              [[ -n "$line" ]] && nodes+=("$line")
+            done < "$f"
+            ruby scripts/append_node_map_suggestions.rb "$lang" "$RELEASE" "${nodes[@]}"
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Always branch from a clean main, regardless of what a previous
+          # step in this job left checked out.
+          git checkout main
+          git checkout -B "$BRANCH"
+          git add lib/textbringer/tree_sitter/node_maps/*.rb
+
+          if git diff --cached --quiet; then
+            echo "Nothing new to suggest (all findings already appended in a previous run)"
+            git checkout main
+            exit 0
+          fi
+
+          git commit -m "chore: Suggest node-map updates for new upstream node types (${RELEASE})"
+          git push -f origin "$BRANCH"
+
+          if [[ -n "$(gh pr list --head "$BRANCH" --state open --json number -q '.[0].number')" ]]; then
+            echo "PR already exists for $BRANCH"
+          else
+            gh pr create \
+              --title "chore: New upstream node types detected (${RELEASE})" \
+              --body "Automated node-map suggestions from the sync-upstream workflow. All suggested mappings are commented out -- review before uncommenting any of them." \
+              --head "$BRANCH" \
+              --base main
+          fi
+
+          # Leave the workspace back on main for any later steps in this job.
+          git checkout main
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fall back to Issue if node-map PR creation failed
+        if: steps.check.outputs.has_new_nodes == 'true' && steps.node-map-pr.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
@@ -118,7 +179,7 @@ jobs:
             const title = `[Auto] New upstream node types detected (${new Date().toISOString().split('T')[0]})`;
             const body = `## Upstream Grammar Sync Report
 
-            The following new node types were detected in upstream tree-sitter grammars:
+            The following new node types were detected in upstream tree-sitter grammars, but the automated node-map PR failed.
 
             ${report}
 
@@ -187,6 +248,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Always branch from a clean main, regardless of what a previous
+          # step in this job left checked out.
+          git checkout main
+
           BRANCH="auto/faveod-${LATEST}"
           git checkout -B "$BRANCH"
           git add .github/workflows/sync-upstream.yml \
@@ -194,10 +259,17 @@ jobs:
             scripts/build_parsers.sh \
             scripts/download_parsers.sh \
             exe/textbringer-tree-sitter
+
+          if git diff --cached --quiet; then
+            echo "Nothing to bump (already up to date)"
+            git checkout main
+            exit 0
+          fi
+
           git commit -m "chore: Bump Faveod/tree-sitter-parsers to ${LATEST}"
           git push -f origin "$BRANCH"
 
-          if gh pr view "$BRANCH" >/dev/null 2>&1; then
+          if [[ -n "$(gh pr list --head "$BRANCH" --state open --json number -q '.[0].number')" ]]; then
             echo "PR already exists for $BRANCH"
           else
             gh pr create \
@@ -206,6 +278,8 @@ jobs:
               --head "$BRANCH" \
               --base main
           fi
+
+          git checkout main
         env:
           GH_TOKEN: ${{ github.token }}
 
