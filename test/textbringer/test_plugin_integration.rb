@@ -31,6 +31,31 @@ class PluginIntegrationTest < Minitest::Test
     assert_equal :markdown, mode_language_map["MarkdownMode"]
   end
 
+  def test_mode_language_map_includes_erb
+    mode_language_map = { "ERBMode" => :"embedded-template" }
+    assert_equal :"embedded-template", mode_language_map["ERBMode"]
+  end
+
+  def test_erb_mode_gets_tree_sitter_enabled
+    skip "embedded-template parser not installed" unless parser_available?(:"embedded-template")
+
+    erb_mode = Class.new(Textbringer::Mode)
+    Textbringer.const_set(:TestERBMode, erb_mode)
+
+    Textbringer::TreeSitter::NodeMaps.register(:"embedded-template", { "<%": :keyword })
+
+    language = :"embedded-template"
+    assert Textbringer::TreeSitterConfig.parser_available?(language)
+    assert Textbringer::TreeSitter::NodeMaps.for(language)
+
+    erb_mode.extend(Textbringer::TreeSitterAdapter::ClassMethods)
+    erb_mode.use_tree_sitter(language)
+
+    assert_equal :"embedded-template", erb_mode.tree_sitter_language
+  ensure
+    Textbringer.send(:remove_const, :TestERBMode) if Textbringer.const_defined?(:TestERBMode)
+  end
+
   def test_tree_sitter_enabled_on_existing_mode
     skip "Markdown parser not installed" unless parser_available?(:markdown)
 

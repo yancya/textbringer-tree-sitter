@@ -63,6 +63,7 @@ MODE_LANGUAGE_MAP = {
   "GroovyMode" => :groovy,
   "HamlMode" => :haml,
   "PascalMode" => :pascal,
+  "ERBMode" => :"embedded-template",
 }.freeze
 
 # Language -> file pattern (for automatic Mode generation)
@@ -93,6 +94,7 @@ LANGUAGE_FILE_PATTERNS = {
   groovy: /\.(groovy|gvy|gy|gradle)$/i,
   haml: /\.haml$/i,
   pascal: /\.(pas|pp|p|inc)$/i,
+  :"embedded-template" => /\.erb$/i,
 }.freeze
 
 # Auto-generate Mode for languages that have parser + node_map but no existing Mode

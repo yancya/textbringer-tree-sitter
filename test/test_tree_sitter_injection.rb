@@ -275,4 +275,40 @@ class TestTreeSitterInjection < Minitest::Test
     # overwrote the overlapping start offset since it's processed second).
     assert_equal Textbringer::Face[:keyword], ctx.highlight_on[inner_content.start_byte]
   end
+
+  def test_self_injection_when_content_type_equals_node_type
+    # ERB's "content" nodes (plain HTML/text between directives) ARE the
+    # leaf to inject, not a wrapper around one -- entry[:content] equal to
+    # entry[:node_type] means "inject this node itself".
+    Textbringer::TreeSitter::InjectionMaps.register(:embedded_template,
+      [{ node_type: :content, content: :content, language: :html }])
+    Textbringer::TreeSitter::NodeMaps.register(:html, { tag_name: :keyword })
+
+    erb_mode_class = Class.new(Textbringer::Mode)
+    erb_mode_class.extend(Textbringer::TreeSitterAdapter::ClassMethods)
+    erb_mode_class.use_tree_sitter(:embedded_template)
+    erb_mode = erb_mode_class.new
+    erb_buffer = Textbringer::MockBuffer.new
+    erb_buffer.mode = erb_mode
+
+    host = FakeNode.new(:content, 5, 15)
+    root = FakeNode.new(:template, 0, 100, [host])
+
+    inner_root = FakeNode.new(:tag_name, 0, 10)
+    fake_tree = FakeTree.new(inner_root)
+    erb_mode.define_singleton_method(:get_injected_parser) { |_lang| FakeParser.new(fake_tree) }
+
+    source = " " * 100
+    ctx = Textbringer::HighlightContext.new(
+      buffer: erb_buffer,
+      highlight_start: 0,
+      highlight_end: source.bytesize,
+      highlight_on: {},
+      highlight_off: {}
+    )
+    erb_mode.send(:highlight_injections, ctx, root, source, 0)
+
+    assert_equal Textbringer::Face[:keyword], ctx.highlight_on[5]
+    assert_equal true, ctx.highlight_off[15]
+  end
 end

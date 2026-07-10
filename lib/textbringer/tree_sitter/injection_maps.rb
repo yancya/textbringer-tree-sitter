@@ -2,6 +2,7 @@
 
 require_relative "language_aliases"
 require_relative "injection_maps/ruby"
+require_relative "injection_maps/embedded_template"
 
 module Textbringer
   module TreeSitter
@@ -41,7 +42,8 @@ module Textbringer
 
         def default_maps
           {
-            ruby: RUBY
+            ruby: RUBY,
+            :"embedded-template" => EMBEDDED_TEMPLATE
           }
         end
 
