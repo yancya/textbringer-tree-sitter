@@ -2,6 +2,7 @@
 
 require_relative "tree_sitter_config"
 require_relative "tree_sitter/node_maps"
+require_relative "tree_sitter/injection_maps"
 
 module Textbringer
   module TreeSitterAdapter
@@ -82,6 +83,8 @@ module Textbringer
           ctx.highlight(base_pos + start_byte, base_pos + end_byte, face)
           highlight_count += 1
         end
+
+        highlight_injections(ctx, tree.root_node, buffer_text, base_pos)
 
         if TreeSitterAdapter.debug?
           File.open("/tmp/tree_sitter_debug.log", "a") do |f|
@@ -196,6 +199,107 @@ module Textbringer
         # Level-based control
         level = CONFIG[:tree_sitter_highlight_level] || 3
         HIGHLIGHT_LEVELS.take(level).flatten
+      end
+
+      # Highlights embedded-language regions (e.g. SQL in a Ruby heredoc).
+      # Depth is intentionally limited to 1: the injected tree is never
+      # scanned for further injections of its own.
+      def highlight_injections(ctx, root_node, source, base_pos)
+        return unless CONFIG.fetch(:tree_sitter_injection, true)
+
+        injections = TreeSitter::InjectionMaps.for(tree_sitter_language)
+        return unless injections
+
+        walk_for_injections(root_node, injections) do |host_node, entry|
+          highlight_single_injection(ctx, host_node, entry, source, base_pos)
+        end
+      end
+
+      def walk_for_injections(node, injections, &block)
+        injections.each do |entry|
+          block.call(node, entry) if node.type.to_sym == entry[:node_type]
+        end
+
+        node.child_count.times do |i|
+          child = node.child(i)
+          walk_for_injections(child, injections, &block) if child
+        end
+      end
+
+      def highlight_single_injection(ctx, host_node, entry, source, base_pos)
+        content_node = find_child_by_type(host_node, entry[:content])
+        return unless content_node
+
+        language = resolve_injection_language(entry[:language], host_node, source)
+        return unless language
+
+        parser = get_injected_parser(language)
+        return unless parser
+
+        text = source.byteslice(content_node.start_byte, content_node.end_byte - content_node.start_byte)
+        return unless text
+
+        injected_tree = parser.parse_string(nil, text)
+        return unless injected_tree
+
+        node_map = TreeSitter::NodeMaps.for(language)
+        visit_node(injected_tree.root_node, node_map) do |node, start_byte, end_byte|
+          face_name = node_type_to_face_for(language, node.type.to_sym)
+          next unless face_name
+          face = Face[face_name]
+          next unless face
+
+          ctx.highlight(
+            base_pos + content_node.start_byte + start_byte,
+            base_pos + content_node.start_byte + end_byte,
+            face
+          )
+        end
+      end
+
+      def find_child_by_type(node, type)
+        node.child_count.times do |i|
+          child = node.child(i)
+          return child if child && child.type.to_sym == type
+        end
+        nil
+      end
+
+      def resolve_injection_language(language_spec, host_node, source)
+        language_spec.respond_to?(:call) ? language_spec.call(host_node, source) : language_spec
+      end
+
+      def get_injected_parser(language)
+        @injected_parsers ||= {}
+        return @injected_parsers[language] if @injected_parsers.key?(language)
+
+        @injected_parsers[language] = load_injected_parser(language)
+      end
+
+      def load_injected_parser(language)
+        return nil unless TreeSitterConfig.parser_available?(language)
+        return nil unless defined?(::TreeSitter)
+
+        parser_path = TreeSitterConfig.parser_path(language)
+        normalized = TreeSitter::LanguageAliases.normalize(language)
+        ts_language = ::TreeSitter::Language.load(normalized, parser_path)
+
+        parser = ::TreeSitter::Parser.new
+        parser.language = ts_language
+        parser
+      rescue LoadError, ::TreeSitter::TreeSitterError, ::TreeSitter::LanguageLoadError
+        nil
+      end
+
+      def node_type_to_face_for(language, node_type)
+        node_map = TreeSitter::NodeMaps.for(language)
+        return nil unless node_map
+
+        face = node_map[node_type]
+        return nil unless face
+        return nil unless enabled_faces.include?(face)
+
+        face
       end
 
     end
