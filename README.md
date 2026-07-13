@@ -157,6 +157,102 @@ textbringer-tree-sitter list
 
 This shows both curated (built-in) and user-defined languages.
 
+### Worked Example: Adding Lua
+
+Lua isn't in the curated list, so here's the full flow end to end, using
+[tree-sitter-grammars/tree-sitter-lua](https://github.com/tree-sitter-grammars/tree-sitter-lua).
+
+1. Create the config file if you haven't already:
+
+   ```bash
+   textbringer-tree-sitter init
+   ```
+
+2. Append a Lua entry to `~/.textbringer/tree_sitter/languages.yml`:
+
+   ```yaml
+   lua:
+     repo: tree-sitter-grammars/tree-sitter-lua
+     branch: main
+   ```
+
+   No `build_cmd` is needed here — Lua's grammar has a plain `scanner.c`
+   (no C++ scanner), so the CLI's auto-detection in `guess_build_cmd`
+   picks the right compiler and flags on its own.
+
+3. Build the parser and generate a node map in one step:
+
+   ```bash
+   textbringer-tree-sitter get lua
+   ```
+
+   This clones the repo, builds `libtree-sitter-lua.{so,dylib}` into
+   `~/.textbringer/parsers/{platform}/`, then generates
+   `~/.textbringer/tree_sitter/node_maps/lua.rb` since Lua has no
+   node_map bundled with the gem.
+
+4. Review the generated node map. The heuristic mapper does a
+   reasonable job on keywords, strings, and comments, but always
+   check the "Unmapped nodes" comment block at the bottom — this is
+   where node types the heuristics couldn't guess end up, and where
+   grammar-specific structural nodes (e.g. `assignment_statement`,
+   `function_declaration`) usually need a manual decision. Move any of
+   those you care about into a face, or leave them commented out to
+   mean "no highlighting for this node type":
+
+   ```ruby
+   # lib/textbringer/tree_sitter/node_maps/lua.rb (excerpt)
+   LUA_FEATURES = {
+     keyword: %i[end return goto do while until if else for in function global nil false true or and not],
+     variable: %i[identifier variable_list variable_declaration implicit_variable_declaration variable],
+     number: %i[number for_numeric_clause],
+     comment: %i[comment_content comment],
+     string: %i[string_content string],
+     punctuation: %i[bracket_index_expression parenthesized_expression],
+     function_name: %i[function_call],
+   }.freeze
+   ```
+
+5. Load the node map from `~/.textbringer.rb`:
+
+   ```ruby
+   require "~/.textbringer/tree_sitter/node_maps/lua.rb"
+   ```
+
+6. Wire up a Mode for `.lua` files (Textbringer doesn't ship a LuaMode,
+   so define a minimal one with `file_name_pattern`, the same
+   mechanism `RubyMode`/`CMode` use), also in `~/.textbringer.rb`:
+
+   ```ruby
+   class LuaMode < Textbringer::ProgrammingMode
+     self.file_name_pattern = /\.lua\z/
+     extend Textbringer::TreeSitterAdapter::ClassMethods
+     use_tree_sitter :lua
+   end
+   ```
+
+Opening a `.lua` file now highlights via the node map from step 4.
+
+#### Troubleshooting
+
+- **`Error: Build failed`** — the auto-detected build command
+  (`guess_build_cmd`) assumes a C or C++ scanner following the
+  standard tree-sitter layout (`src/parser.c` + optional
+  `src/scanner.{c,cc}`). Grammars with a nonstandard build (Rust
+  helpers, generated bindings) need an explicit `build_cmd` in
+  `languages.yml` — see the Zig/detailed-format example above.
+- **`LANGUAGE_VERSION` mismatch at load time** — `ruby_tree_sitter`
+  2.x accepts grammars built with tree-sitter ABI 6 through 14 (see
+  `TreeSitter::MIN_COMPATIBLE_LANGUAGE_VERSION`/`LANGUAGE_VERSION`, or
+  run `textbringer-tree-sitter doctor` to check installed parsers).
+  Check `src/parser.c`'s `#define LANGUAGE_VERSION` in the grammar
+  repo before adding it; pin a `commit:` if the default branch has
+  since moved to an incompatible version.
+- **Alias/name mismatches** — if the grammar's canonical name doesn't
+  match how you want to refer to it (e.g. `c-sharp` vs `csharp`), see
+  `lib/textbringer/tree_sitter/language_aliases.rb` for how curated
+  languages register aliases.
+
 ## Customization
 
 ### Highlight Level (Emacs-style)
