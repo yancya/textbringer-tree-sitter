@@ -132,6 +132,7 @@ class TreeSitterAdapterTest < Minitest::Test
     assert_includes faces, :keyword
     assert_includes faces, :type
     assert_includes faces, :constant
+    assert_includes faces, :property
     refute_includes faces, :function_name
   end
 
@@ -146,6 +147,7 @@ class TreeSitterAdapterTest < Minitest::Test
     assert_includes faces, :function_name
     assert_includes faces, :variable
     assert_includes faces, :number
+    assert_includes faces, :property
     refute_includes faces, :operator
     refute_includes faces, :punctuation
   end
