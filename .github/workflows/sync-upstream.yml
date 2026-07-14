@@ -176,8 +176,41 @@ jobs:
             echo "new_release=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Issue for new parser release
+      - name: Bump Faveod version and open PR
         if: steps.check-releases.outputs.new_release == 'true'
+        id: bump
+        continue-on-error: true
+        run: |
+          LATEST="${{ steps.check-releases.outputs.latest_release }}"
+          bash scripts/bump_faveod_version.sh "$LATEST"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="auto/faveod-${LATEST}"
+          git checkout -B "$BRANCH"
+          git add .github/workflows/sync-upstream.yml \
+            ext/textbringer_tree_sitter/extconf.rb \
+            scripts/build_parsers.sh \
+            scripts/download_parsers.sh \
+            exe/textbringer-tree-sitter
+          git commit -m "chore: Bump Faveod/tree-sitter-parsers to ${LATEST}"
+          git push -f origin "$BRANCH"
+
+          if gh pr view "$BRANCH" >/dev/null 2>&1; then
+            echo "PR already exists for $BRANCH"
+          else
+            gh pr create \
+              --title "chore: Bump Faveod/tree-sitter-parsers to ${LATEST}" \
+              --body "Automated bump from ${{ steps.check-releases.outputs.current_release }} to ${LATEST}. See https://github.com/Faveod/tree-sitter-parsers/releases/tag/${LATEST}" \
+              --head "$BRANCH" \
+              --base main
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fall back to Issue if PR creation failed
+        if: steps.check-releases.outputs.new_release == 'true' && steps.bump.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
@@ -187,7 +220,7 @@ jobs:
             const title = `[Auto] New Faveod/tree-sitter-parsers release: ${latest}`;
             const body = `## New Parser Release Available
 
-            A new release of [Faveod/tree-sitter-parsers](https://github.com/Faveod/tree-sitter-parsers) is available.
+            A new release of [Faveod/tree-sitter-parsers](https://github.com/Faveod/tree-sitter-parsers) is available, but the automated PR bump failed.
 
             - **Current version:** ${current}
             - **Latest version:** ${latest}
